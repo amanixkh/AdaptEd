@@ -5,6 +5,18 @@ const { PDFParse } = require("pdf-parse");
 const fs = require("fs");
 const pool = require("../config/db");
 
+// دالة تنظيف النص مع الحفاظ على الفقرات
+function cleanExtractedText(text) {
+    const lines = text.split("\n");
+
+    return lines
+        .map(line => line.trim())          // حذف المسافات ببداية ونهاية السطر
+        .filter(line => line.length > 0)   // حذف الأسطر الفارغة
+        .join("\n\n")                      // ترك سطر فارغ بين الفقرات
+        .replace(/[ \t]+/g, " ")           // حذف المسافات المكررة
+        .replace(/\n{3,}/g, "\n\n")        // عدم السماح بأكثر من سطرين فارغين
+        .trim();
+}
 
 router.post("/upload", upload.single("pdf"), async (req, res) => {
     try {
@@ -22,26 +34,28 @@ router.post("/upload", upload.single("pdf"), async (req, res) => {
         const parser = new PDFParse({ data: dataBuffer });
         const data = await parser.getText();
 
+        // تنظيف النص
+        const cleanedText = cleanExtractedText(data.text);
 
         // حفظ البيانات في جدول lessons
         const result = await pool.query(
-            `INSERT INTO lessons 
-            (title, file_path, extracted_text)
-            VALUES ($1, $2, $3)
+            `INSERT INTO lessons
+            (title, original_name, file_size, file_path, extracted_text)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *`,
             [
                 req.file.originalname,
+                req.file.originalname,
+                req.file.size,
                 req.file.path,
-                data.text
+                cleanedText
             ]
         );
-
 
         res.status(200).json({
             message: "PDF uploaded and saved successfully",
             lesson: result.rows[0]
         });
-
 
     } catch (error) {
 
@@ -53,6 +67,5 @@ router.post("/upload", upload.single("pdf"), async (req, res) => {
         });
     }
 });
-
 
 module.exports = router;

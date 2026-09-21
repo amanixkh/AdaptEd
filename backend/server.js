@@ -3,13 +3,19 @@ const cors = require("cors");
 require("dotenv").config();
 
 require("./src/config/db");
+
 const lessonRoutes = require("./src/routes/lessonRoutes");
+const geminiRoutes = require("./src/routes/geminiRoutes");
 
 const app = express();
-app.use("/api/lessons", lessonRoutes);
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Routes
+app.use("/api/lessons", lessonRoutes);
+app.use("/api/gemini", geminiRoutes);
 
 app.get("/", (req, res) => {
   res.send("adaptes_ed Backend is running!");
