@@ -1,59 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-const ai = require("../config/gemini");
 const pool = require("../config/db");
-
-// Config for retrying Gemini calls when the AI service is temporarily unavailable
-const GEMINI_MAX_RETRIES = 3;
-const GEMINI_RETRY_DELAY_MS = 2000;
-
-// Small helper to pause execution between retries
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Detects whether an error from the Gemini SDK represents a temporary
-// "service unavailable / overloaded" condition (HTTP 503) rather than
-// an unrelated internal error.
-function isGeminiUnavailableError(error) {
-    const status = error?.status || error?.code || error?.response?.status;
-    const message = (error?.message || "").toLowerCase();
-
-    return (
-        status === 503 ||
-        status === "UNAVAILABLE" ||
-        message.includes("503") ||
-        message.includes("unavailable") ||
-        message.includes("overloaded")
-    );
-}
-
-// Wraps ai.models.generateContent with automatic retries when Gemini
-// reports it is temporarily unavailable/overloaded. Any other error is
-// rethrown immediately so it can be treated as a genuine internal error.
-async function generateContentWithRetry(params) {
-    let lastError;
-
-    for (let attempt = 1; attempt <= GEMINI_MAX_RETRIES; attempt++) {
-        try {
-            return await ai.models.generateContent(params);
-        } catch (error) {
-            lastError = error;
-
-            if (!isGeminiUnavailableError(error)) {
-                // Not a temporary availability issue, fail fast
-                throw error;
-            }
-
-            // If we still have attempts left, wait before retrying
-            if (attempt < GEMINI_MAX_RETRIES) {
-                await delay(GEMINI_RETRY_DELAY_MS);
-            }
-        }
-    }
-
-    // All retries exhausted while Gemini remained unavailable
-    throw lastError;
-}
+const { generateAIResponse, isRetryableProviderError } = require("../services/aiService");
 
 
 router.post("/summary/:lessonId", async (req, res) => {
@@ -86,15 +35,14 @@ router.post("/summary/:lessonId", async (req, res) => {
         }
 
 
-        // 2- Send text to Gemini (retries automatically on temporary unavailability)
-        const response = await generateContentWithRetry({
-            model: "gemini-3.6-flash",
-            contents:
+        // 2- Send text to Gemini, with automatic retry + OpenRouter fallback on
+        // temporary unavailability (handled centrally in aiService)
+        const aiResult = await generateAIResponse(
             `Summarize this lesson in simple bullet points:\n\n${text}`
-        });
+        );
 
 
-        const summary = response.text;
+        const summary = aiResult.text;
 
 
         // 3- Save result
@@ -122,9 +70,9 @@ router.post("/summary/:lessonId", async (req, res) => {
 
         console.error(error);
 
-        // If Gemini stayed unavailable/overloaded after all retries,
+        // If Gemini and the OpenRouter fallback both stayed unavailable,
         // return 503 with the required response shape instead of 500
-        if (isGeminiUnavailableError(error)) {
+        if (isRetryableProviderError(error)) {
             return res.status(503).json({
                 success: false,
                 message: "AI service is temporarily unavailable. Please try again later."

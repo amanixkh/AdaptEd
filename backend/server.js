@@ -7,6 +7,7 @@ const pool = require("./config/db.js");
 
 const lessonRoutes = require("./src/routes/lessonRoutes");
 const geminiRoutes = require("./src/routes/geminiRoutes");
+const generateRoutes = require("./src/routes/generateRoutes");
 const authRoutes = require("./routes/authRoutes.js");
 const testRoutes = require("./routes/testroutes.js");
 
@@ -21,6 +22,7 @@ app.use("/api/auth", authRoutes);
 // Routes
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/gemini", geminiRoutes);
+app.use("/api/generate", generateRoutes);
 
 app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");
