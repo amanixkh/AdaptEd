@@ -4,16 +4,11 @@ const router = express.Router();
 const ai = require("../config/gemini");
 const pool = require("../config/db");
 
-// Config for retrying Gemini calls when the AI service is temporarily unavailable
 const GEMINI_MAX_RETRIES = 3;
 const GEMINI_RETRY_DELAY_MS = 2000;
 
-// Small helper to pause execution between retries
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Detects whether an error from the Gemini SDK represents a temporary
-// "service unavailable / overloaded" condition (HTTP 503) rather than
-// an unrelated internal error.
 function isGeminiUnavailableError(error) {
     const status = error?.status || error?.code || error?.response?.status;
     const message = (error?.message || "").toLowerCase();
@@ -27,9 +22,6 @@ function isGeminiUnavailableError(error) {
     );
 }
 
-// Wraps ai.models.generateContent with automatic retries when Gemini
-// reports it is temporarily unavailable/overloaded. Any other error is
-// rethrown immediately so it can be treated as a genuine internal error.
 async function generateContentWithRetry(params) {
     let lastError;
 
@@ -40,18 +32,15 @@ async function generateContentWithRetry(params) {
             lastError = error;
 
             if (!isGeminiUnavailableError(error)) {
-                // Not a temporary availability issue, fail fast
                 throw error;
             }
 
-            // If we still have attempts left, wait before retrying
             if (attempt < GEMINI_MAX_RETRIES) {
                 await delay(GEMINI_RETRY_DELAY_MS);
             }
         }
     }
 
-    // All retries exhausted while Gemini remained unavailable
     throw lastError;
 }
 
@@ -62,7 +51,6 @@ router.post("/summary/:lessonId", async (req, res) => {
         const { lessonId } = req.params;
 
 
-        // 1- Get lesson text from database
         const lesson = await pool.query(
             "SELECT extracted_text FROM lessons WHERE id = $1",
             [lessonId]
@@ -86,7 +74,6 @@ router.post("/summary/:lessonId", async (req, res) => {
         }
 
 
-        // 2- Send text to Gemini (retries automatically on temporary unavailability)
         const response = await generateContentWithRetry({
             model: "gemini-3.6-flash",
             contents:
@@ -97,7 +84,6 @@ router.post("/summary/:lessonId", async (req, res) => {
         const summary = response.text;
 
 
-        // 3- Save result
         await pool.query(
             `
             INSERT INTO generated_content
@@ -122,8 +108,6 @@ router.post("/summary/:lessonId", async (req, res) => {
 
         console.error(error);
 
-        // If Gemini stayed unavailable/overloaded after all retries,
-        // return 503 with the required response shape instead of 500
         if (isGeminiUnavailableError(error)) {
             return res.status(503).json({
                 success: false,
@@ -131,7 +115,6 @@ router.post("/summary/:lessonId", async (req, res) => {
             });
         }
 
-        // Any other unexpected error is a genuine internal server error
         res.status(500).json({
             message:"Gemini Error",
             error:error.message
