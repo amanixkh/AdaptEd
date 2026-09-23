@@ -13,12 +13,17 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^2.23.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0",
     "nodemon": "^3.1.14",
-    "pg": "^8.23.0"
+    "pdf-parse": "^2.4.5",
+    "pdf-to-png-converter": "^4.2.1",
+    "pg": "^8.23.0",
+    "tesseract.js": "^7.0.0"
   }
 }
