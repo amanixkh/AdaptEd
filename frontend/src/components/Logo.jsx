@@ -1,0 +1,1 @@
+export default function Logo(){return <svg className="brand-symbol" width="39" height="42" viewBox="0 0 44 48" fill="none" aria-hidden="true"><path d="M4 41 18 7c1-2 2-3 5-3h7L17 36z" fill="currentColor"/><path d="m23 4 17 37-13-5-9-21z" fill="#a6cb49"/><path d="m4 41 13-5 5 5 5-5 13 5-18 6z" fill="#c8e979"/><path d="m22 30 5 6-5 5-5-5z" fill="#f8f7f2"/></svg>}
