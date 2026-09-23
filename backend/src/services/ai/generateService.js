@@ -53,7 +53,7 @@ async function generate(prompt, options = {}) {
         const startedAt = Date.now();
         let generationMs = 0;
         let jsonParsingMs = 0;
-        console.log(`[AI] Using ${provider.name}...`);
+        console.log(`[AI] Trying ${provider.name}...`);
 
         try {
             const text = await provider.generate(prompt, options);
@@ -96,6 +96,7 @@ async function generate(prompt, options = {}) {
                 message: error.message,
                 status: error.status,
                 code: error.code,
+                timeoutSource: error.timeoutSource,
                 generationMs: generationMs || elapsedMs,
                 jsonParsingMs,
             });
@@ -117,6 +118,7 @@ async function generate(prompt, options = {}) {
         message: failure.message,
         status: failure.status,
         code: failure.code,
+        timeoutSource: failure.timeoutSource,
     })));
     throw error;
 }

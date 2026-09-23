@@ -213,6 +213,14 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
     const sourceStartedAt = Date.now();
     const sourceText = await compactLongText(text);
     const sourcePreparationMs = Date.now() - sourceStartedAt;
+    console.log("[AI] Source text prepared", {
+        lessonId,
+        feature,
+        extractedTextCharacters: text.length,
+        sourceTextCharacters: sourceText.length,
+        estimatedSourceTokens: estimateTokens(sourceText),
+        sourcePreparationMs,
+    });
 
     const promptStartedAt = Date.now();
     const prompt = createPrompt(feature, profile, sourceText);

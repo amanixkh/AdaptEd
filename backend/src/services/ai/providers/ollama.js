@@ -5,19 +5,35 @@ const TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 300000;
 async function generate(prompt, options = {}) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const body = JSON.stringify({
+        model: MODEL,
+        prompt,
+        stream: false,
+        ...(options.responseFormat === "json" && { format: "json" }),
+        options: { temperature: 0.2 },
+    });
+    const payloadBytes = Buffer.byteLength(body, "utf8");
 
     try {
+        console.log("[AI] Ollama request started", {
+            model: MODEL,
+            payloadBytes,
+            promptCharacters: prompt.length,
+            timeoutMs: TIMEOUT_MS,
+            timeoutSource: "AbortController setTimeout",
+        });
+        const requestStartedAt = Date.now();
         const response = await fetch(`${BASE_URL}/api/generate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: MODEL,
-                prompt,
-                stream: false,
-                ...(options.responseFormat === "json" && { format: "json" }),
-                options: { temperature: 0.2 },
-            }),
+            body,
             signal: controller.signal,
+        });
+        const responseStartedAt = Date.now();
+        console.log("[AI] Ollama response headers received", {
+            model: MODEL,
+            status: response.status,
+            requestDurationMs: responseStartedAt - requestStartedAt,
         });
 
         if (!response.ok) {
@@ -33,6 +49,10 @@ async function generate(prompt, options = {}) {
         }
 
         const data = await response.json();
+        console.log("[AI] Ollama response parsed", {
+            model: MODEL,
+            responseDurationMs: Date.now() - responseStartedAt,
+        });
 
         if (!data?.response) {
             throw new Error("Ollama returned an empty or malformed response");
@@ -43,6 +63,7 @@ async function generate(prompt, options = {}) {
         if (error.name === "AbortError") {
             const timeoutError = new Error(`Ollama request timed out after ${TIMEOUT_MS}ms`);
             timeoutError.code = "ETIMEDOUT";
+            timeoutError.timeoutSource = "AbortController setTimeout";
             throw timeoutError;
         }
         if (error instanceof TypeError) {

@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {NavLink,Outlet,Navigate,useNavigate,useLocation} from 'react-router-dom'
-import {LayoutDashboard,Upload,History,Accessibility,LogOut,Menu,X,ArrowUpRight,Sparkles} from './Icons'
+import {LayoutDashboard,Upload,History,Accessibility,LogOut,Menu,X} from './Icons'
 import {useApp} from '../context/AppContext'
 import {Brand,Language,Busy,ErrorBox} from './UI'
 import {DEMO} from '../services/api'

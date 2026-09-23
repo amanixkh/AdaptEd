@@ -8,9 +8,10 @@ import {PageHeading,Empty,Busy,ErrorBox} from '../components/UI'
 import {sample,modes,outputText} from '../data/demo'
 import {api,DEMO,download} from '../services/api'
 const icons={adhd:Brain,dyslexia:BookOpen,summary:AlignLeft,quiz:ListChecks,flashcards:Layers}
-export default function Result(){const{id}=useParams(),{tr,lessons,updateLesson,lang}=useApp();const lesson=lessons.find(l=>l.id===id);const[mode,setMode]=useState(()=>lesson?.preferences?.features?.[0]||'adhd'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[editing,setEditing]=useState(false),[draft,setDraft]=useState(''),[speaking,setSpeaking]=useState(false),[preview,setPreview]=useState(false),[confirmDelete,setConfirmDelete]=useState(false)
+export default function Result(){const{id}=useParams(),{tr,lessons,updateLesson}=useApp();const lesson=lessons.find(l=>l.id===id);const[mode,setMode]=useState(()=>lesson?.preferences?.features?.[0]||'adhd'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[editing,setEditing]=useState(false),[draft,setDraft]=useState(''),[speaking,setSpeaking]=useState(false),[preview,setPreview]=useState(false),[confirmDelete,setConfirmDelete]=useState(false)
  const names={adhd:tr('ADHD · Focus','ADHD · التركيز'),dyslexia:tr('Dyslexia · Reading','عسر القراءة'),summary:tr('Summary','الملخص'),quiz:tr('Quiz','الأسئلة'),flashcards:tr('Flashcards','بطاقات المراجعة')}
  useEffect(()=>()=>{window.speechSynthesis?.cancel()},[id])
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  useEffect(()=>{window.speechSynthesis?.cancel();setSpeaking(false);setEditing(false);setError('');setNotice('');setConfirmDelete(false)},[mode,id])
  if(!lesson)return <Empty title={tr('Lesson not found','الدرس غير موجود')} text={tr('Return to your library and choose a lesson.','ارجع إلى المكتبة واختر درساً.')} to="/app/history" label={tr('Open library','فتح المكتبة')}/>
  const content=lesson.outputs[mode],text=outputText(content)

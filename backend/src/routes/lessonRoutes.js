@@ -4,6 +4,7 @@ const { PDFParse } = require("pdf-parse");
 const pool = require("../config/db");
 const upload = require("../middleware/upload");
 const authMiddleware = require("../middleware/authMiddleware");
+const { extractTextWithOcr } = require("../services/ocrService");
 
 const router = express.Router();
 
@@ -18,15 +19,32 @@ function cleanExtractedText(text) {
     .trim();
 }
 
+function hasUsableExtractedText(text) {
+  const cleanedText = cleanExtractedText(text || "");
+  return cleanedText.replace(/\s/g, "").length >= 20;
+}
+
 router.post("/upload", authMiddleware, upload.single("pdf"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No PDF file uploaded" });
     }
 
+    const selectedLanguage = req.body.language || req.body.lang || req.body.lessonLanguage;
     const dataBuffer = fs.readFileSync(req.file.path);
     const parser = new PDFParse({ data: dataBuffer });
     const data = await parser.getText();
+    let extractedText = cleanExtractedText(data.text);
+
+    if (!hasUsableExtractedText(extractedText)) {
+      console.warn("[PDF] pdf-parse returned empty or invalid text; switching to OCR", {
+        file: req.file.originalname,
+        language: selectedLanguage || "en",
+        extractedCharacters: extractedText.length,
+      });
+      extractedText = await extractTextWithOcr(req.file.path, selectedLanguage);
+    }
+
     const result = await pool.query(
       `INSERT INTO lessons
        (user_id, title, original_name, file_size, file_path, extracted_text)
@@ -38,7 +56,7 @@ router.post("/upload", authMiddleware, upload.single("pdf"), async (req, res) =>
         req.file.originalname,
         req.file.size,
         req.file.path,
-        cleanExtractedText(data.text),
+        extractedText,
       ]
     );
 
