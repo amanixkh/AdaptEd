@@ -1,28 +1,16 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
-
-// MVP: the platform is teacher-only (no student dashboard/features yet).
-// The users.role column is kept for future expansion (e.g. students),
-// but self-registration is hardcoded to "teacher" and ignores any
-// client-supplied role to prevent privilege escalation (e.g. "admin").
 const SELF_REGISTER_ROLE = "teacher";
-
-// Simple email format check
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const register = async (req, res) => {
   try {
-    // role is intentionally not read from req.body: see SELF_REGISTER_ROLE above
     const { name, email, password } = req.body;
-
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
       });
     }
-
-    // Normalize email so "User@x.com" and "user@x.com" are treated as the same account
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
@@ -31,8 +19,6 @@ const register = async (req, res) => {
       });
     }
 
-    // Enforce column limits (users.name VARCHAR(100), users.email VARCHAR(150))
-    // so oversized input fails with 400 instead of an unhandled Postgres error (500).
     if (name.trim().length === 0 || name.length > 100) {
       return res.status(400).json({
         message: "Name must be between 1 and 100 characters",
@@ -45,7 +31,6 @@ const register = async (req, res) => {
     }
 
     if (password.length < 6 || password.length > 72) {
-      // bcrypt silently ignores bytes beyond 72, so cap the max as well
       return res.status(400).json({
         message: "Password must be between 6 and 72 characters",
       });
@@ -94,11 +79,10 @@ const login = async (req, res) => {
       });
     }
 
-    // Normalize the same way as register so lookups match regardless of case
     const normalizedEmail = email.trim().toLowerCase();
 
     const result = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
+      "SELECT * FROM users WHERE LOWER(TRIM(email)) = $1",
       [normalizedEmail]
     );
 
@@ -118,7 +102,6 @@ const login = async (req, res) => {
     }
 
     if (!process.env.JWT_SECRET) {
-      // Fail loudly instead of letting jwt.sign throw an opaque error
       console.error("Login error: JWT_SECRET is not configured");
       return res.status(500).json({
         message: "Server error",

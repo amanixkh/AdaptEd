@@ -11,7 +11,6 @@ router.post("/summary/:lessonId", async (req, res) => {
         const { lessonId } = req.params;
 
 
-        // 1- Get lesson text from database
         const lesson = await pool.query(
             "SELECT extracted_text FROM lessons WHERE id = $1",
             [lessonId]
@@ -45,7 +44,6 @@ router.post("/summary/:lessonId", async (req, res) => {
         const summary = aiResult.text;
 
 
-        // 3- Save result
         await pool.query(
             `
             INSERT INTO generated_content
@@ -79,7 +77,6 @@ router.post("/summary/:lessonId", async (req, res) => {
             });
         }
 
-        // Any other unexpected error is a genuine internal server error
         res.status(500).json({
             message:"Gemini Error",
             error:error.message

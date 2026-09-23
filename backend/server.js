@@ -1,25 +1,25 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-
 require("./src/config/db");
-const pool = require("./config/db.js");
 
+const historyRoutes = require("./src/routes/historyRoutes");
 const lessonRoutes = require("./src/routes/lessonRoutes");
 const geminiRoutes = require("./src/routes/geminiRoutes");
 const generateRoutes = require("./src/routes/generateRoutes");
-const authRoutes = require("./routes/authRoutes.js");
-const testRoutes = require("./routes/testroutes.js");
-
+const authRoutes = require("./src/routes/authRoutes");
+const testRoutes = require("./src/routes/testroutes");
+const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
+const dashboardRoutes = require("./src/routes/dashboardRoutes");
 const app = express();
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/generated-content", generatedContentRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/auth", authRoutes);
-
-// Routes
+app.use("/api/history", historyRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/gemini", geminiRoutes);
 app.use("/api/generate", generateRoutes);
