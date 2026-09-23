@@ -1,7 +1,7 @@
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 35000;
 
-async function generate(prompt) {
+async function generate(prompt, options = {}) {
     const ai = require("../../../config/gemini");
     let timeoutId;
     const timeout = new Promise((_, reject) => {
@@ -13,8 +13,13 @@ async function generate(prompt) {
     });
 
     try {
+        const request = { model: MODEL, contents: prompt };
+        if (options.responseFormat === "json") {
+            request.config = { responseMimeType: "application/json", temperature: 0.2 };
+        }
+
         const response = await Promise.race([
-            ai.models.generateContent({ model: MODEL, contents: prompt }),
+            ai.models.generateContent(request),
             timeout,
         ]);
 

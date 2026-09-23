@@ -1,8 +1,8 @@
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = process.env.OPENROUTER_MODEL || "openrouter/free";
-const TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS) || 30000;
+const TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS) || 45000;
 
-async function generate(prompt) {
+async function generate(prompt, options = {}) {
     if (!process.env.OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not configured");
     }
@@ -20,6 +20,10 @@ async function generate(prompt) {
             body: JSON.stringify({
                 model: MODEL,
                 messages: [{ role: "user", content: prompt }],
+                temperature: 0.2,
+                ...(options.responseFormat === "json" && {
+                    response_format: { type: "json_object" },
+                }),
             }),
             signal: controller.signal,
         });

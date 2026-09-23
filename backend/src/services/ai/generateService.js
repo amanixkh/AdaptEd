@@ -38,34 +38,71 @@ function isRetryableProviderError(error) {
     });
 }
 
-async function generate(prompt) {
+async function generate(prompt, options = {}) {
     if (typeof prompt !== "string" || !prompt.trim()) {
         throw new TypeError("A non-empty prompt is required");
     }
 
     const providers = getProviderChain();
     const failures = [];
+    let totalGenerationMs = 0;
+    let totalJsonParsingMs = 0;
 
     for (let index = 0; index < providers.length; index += 1) {
         const provider = providers[index];
-        console.log(`Using ${provider.name}...`);
+        const startedAt = Date.now();
+        let generationMs = 0;
+        let jsonParsingMs = 0;
+        console.log(`[AI] Using ${provider.name}...`);
 
         try {
-            const text = await provider.generate(prompt);
-            console.log(`${provider.name} succeeded.`);
-            return { text };
-        } catch (error) {
-            failures.push({ provider: provider.name, error });
-            console.warn(`${provider.name} failed.`, error.message);
+            const text = await provider.generate(prompt, options);
+            generationMs = Date.now() - startedAt;
+            totalGenerationMs += generationMs;
 
-            const isPrimaryFailure = index === 0;
-            if (isPrimaryFailure && !isRetryableProviderError(error)) {
-                throw error;
+            const parsingStartedAt = Date.now();
+            let data;
+            try {
+                data = options.validate ? options.validate(text) : undefined;
+            } finally {
+                jsonParsingMs = options.validate ? Date.now() - parsingStartedAt : 0;
             }
+            totalJsonParsingMs += jsonParsingMs;
+
+            console.log(`[AI] ${provider.name} succeeded.`, {
+                generationMs,
+                jsonParsingMs,
+                responseCharacters: text.length,
+                estimatedResponseTokens: Math.ceil(text.length / 4),
+            });
+            return options.validate
+                ? {
+                    text,
+                    data,
+                    provider: provider.name,
+                    timings: { aiGenerationMs: totalGenerationMs, jsonParsingMs: totalJsonParsingMs },
+                }
+                : {
+                    text,
+                    provider: provider.name,
+                    timings: { aiGenerationMs: totalGenerationMs, jsonParsingMs: totalJsonParsingMs },
+                };
+        } catch (error) {
+            const elapsedMs = Date.now() - startedAt;
+            if (generationMs === 0) totalGenerationMs += elapsedMs;
+            if (jsonParsingMs > 0) totalJsonParsingMs += jsonParsingMs;
+            failures.push({ provider: provider.name, error });
+            console.warn(`[AI] ${provider.name} failed after ${elapsedMs}ms.`, {
+                message: error.message,
+                status: error.status,
+                code: error.code,
+                generationMs: generationMs || elapsedMs,
+                jsonParsingMs,
+            });
 
             const nextProvider = providers[index + 1];
             if (nextProvider) {
-                console.log(`Switching to ${nextProvider.name}...`);
+                console.log(`[AI] Falling back to ${nextProvider.name}...`);
             }
         }
     }
@@ -75,6 +112,12 @@ async function generate(prompt) {
     error.status = 503;
     error.failures = failures;
     error.cause = failures[0]?.error;
+    console.error("[AI] All providers failed.", failures.map(({ provider, error: failure }) => ({
+        provider,
+        message: failure.message,
+        status: failure.status,
+        code: failure.code,
+    })));
     throw error;
 }
 
