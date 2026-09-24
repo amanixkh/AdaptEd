@@ -8,6 +8,7 @@ function storeSession(result){if(result?.token)localStorage.setItem(TOKEN_KEY,re
 function clearSession(){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY)}
 function parseContent(row){if(!row)return null;let data=row.content;try{if(typeof data==='string')data=JSON.parse(data)}catch{void 0};const value=data?.[row.content_type]??data;if(row.content_type==='quiz'&&Array.isArray(value))return value.map(item=>{const correct=Math.max(0,item.options?.indexOf(item.answer)??0);return {q:item.question,options:item.options||[],correct,explanation:item.explanation}});return value}
 function normalizeLesson(row,generatedContent=[]){const outputs={};for(const item of generatedContent){outputs[item.content_type]=parseContent(item)}return {id:String(row.id),title:row.title||row.original_name||'Untitled lesson',fileName:row.original_name||row.file_path?.split(/[\\/]/).pop()||row.title||'lesson.pdf',text:row.extracted_text||'',lang:'en',createdAt:row.created_at,outputs}}
+function normalizeSharedLesson(row){return {id:String(row.id),title:row.title||row.original_name||'Untitled lesson',fileName:row.original_name||row.file_path?.split(/[\\/]/).pop()||row.title||'lesson.pdf',createdAt:row.created_at,assignedAt:row.assigned_at,generatedCount:Number(row.generated_count||0)}}
 async function getLesson(id){const response=await client.get(`/lessons/${encodeURIComponent(id)}`);return normalizeLesson(response.data.lesson,response.data.generatedContent)}
 export const client=axios.create({baseURL:import.meta.env.VITE_API_BASE_URL||'http://localhost:5000/api',timeout:60000})
 client.interceptors.request.use(config=>{const token=localStorage.getItem(TOKEN_KEY);if(token)config.headers.Authorization=`Bearer ${token}`;return config})
@@ -22,6 +23,14 @@ export const api={
  generate:async(lessonId,type,lang,preferences={})=>{const feature=generatedFeatures.includes(type)?type:'summary';const needs=new Set(preferences.needs||[]);if(!generatedFeatures.includes(type))needs.add(type);await client.post('/generate',{lessonId,features:[feature],profile:{language:lang,level:preferences.level||'beginner',needs:[...needs]}});const lesson=await getLesson(lessonId);return lesson.outputs[feature]},
  remove:async id=>(await client.delete(`/lessons/${encodeURIComponent(id)}`)).data,
  save:async(id,outputs)=>({id,outputs}),
- export:async(id,type,format)=>(await client.get(`/lessons/${encodeURIComponent(id)}/export`,{params:{type,format},responseType:'blob'})).data
+ export:async(id,type,format)=>(await client.get(`/lessons/${encodeURIComponent(id)}/export`,{params:{type,format},responseType:'blob'})).data,
+ studentLessons:async()=>{if(DEMO)return[];const rows=(await client.get('/student/lessons')).data.lessons||[];return rows.map(normalizeSharedLesson)},
+ studentLesson:async id=>{const response=await client.get(`/student/lessons/${encodeURIComponent(id)}`);return normalizeLesson(response.data.lesson,response.data.generatedContent)},
+ quizAttempts:async id=>(await client.get(`/student/lessons/${encodeURIComponent(id)}/quiz-attempts`)).data.attempts||[],
+ submitQuizAttempt:async(id,payload)=>(await client.post(`/student/lessons/${encodeURIComponent(id)}/quiz-attempts`,payload)).data.attempt,
+ archived:async()=>{const rows=(await client.get('/lessons/archived/list')).data.lessons||[];return {lessons:rows}},
+ archive:async id=>(await client.delete(`/lessons/${encodeURIComponent(id)}`)).data,
+ restore:async id=>(await client.patch(`/lessons/${encodeURIComponent(id)}/restore`)).data,
+ deleteForever:async id=>(await client.delete(`/lessons/${encodeURIComponent(id)}/permanent`)).data
 }
 export function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}

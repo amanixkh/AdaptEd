@@ -11,6 +11,7 @@ const authRoutes = require("./src/routes/authRoutes");
 const testRoutes = require("./src/routes/testroutes");
 const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
+const studentRoutes = require("./src/routes/studentRoutes");
 const app = express();
 
 app.use(cors());
@@ -23,6 +24,7 @@ app.use("/api/history", historyRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/gemini", geminiRoutes);
 app.use("/api/generate", generateRoutes);
+app.use("/api/student", studentRoutes);
 
 app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");
