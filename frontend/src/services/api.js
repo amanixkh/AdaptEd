@@ -28,7 +28,7 @@ export const api={
  studentLesson:async id=>{const response=await client.get(`/student/lessons/${encodeURIComponent(id)}`);return normalizeLesson(response.data.lesson,response.data.generatedContent)},
  quizAttempts:async id=>(await client.get(`/student/lessons/${encodeURIComponent(id)}/quiz-attempts`)).data.attempts||[],
  submitQuizAttempt:async(id,payload)=>(await client.post(`/student/lessons/${encodeURIComponent(id)}/quiz-attempts`,payload)).data.attempt,
- archived:async()=>{const rows=(await client.get('/lessons/archived/list')).data.lessons||[];return {lessons:rows}},
+ archived:async()=>{const token=localStorage.getItem(TOKEN_KEY);const rows=(await client.get('/lessons/archived/list',{headers:token?{Authorization:`Bearer ${token}`}:{}})).data.lessons||[];return {lessons:rows}},
  archive:async id=>(await client.delete(`/lessons/${encodeURIComponent(id)}`)).data,
  restore:async id=>(await client.patch(`/lessons/${encodeURIComponent(id)}/restore`)).data,
  deleteForever:async id=>(await client.delete(`/lessons/${encodeURIComponent(id)}/permanent`)).data
