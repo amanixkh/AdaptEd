@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 require("./src/config/db");
-
+const { startNotificationJobs } = require("./src/jobs/notificationjobs");
 const historyRoutes = require("./src/routes/historyRoutes");
 const lessonRoutes = require("./src/routes/lessonRoutes");
 const geminiRoutes = require("./src/routes/geminiRoutes");
@@ -10,6 +10,7 @@ const authRoutes = require("./src/routes/authRoutes");
 const testRoutes = require("./src/routes/testroutes");
 const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
+const notificationRoutes = require("./src/routes/notificationRoutes");
 const app = express();
 
 app.use(cors());
@@ -21,7 +22,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/gemini", geminiRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.get("/", (req, res) => { res.send("AdaptEd backend is running!"); });
 const PORT = process.env.PORT || 5000; const HOST = "localhost";
+
 app.listen(PORT, HOST, () => {
-console.log(`Server running on http://${HOST}:${PORT}`); });
+console.log(`Server running on http://${HOST}:${PORT}`);
+startNotificationJobs();
+ });
