@@ -8,6 +8,19 @@ const { generateAndSaveFeature } = require("../services/contentGenerationService
 // Only these feature names are ever generated/saved; anything else is ignored.
 const ALLOWED_FEATURES = ["summary", "quiz", "flashcards"];
 
+const DEFAULT_QUESTION_COUNT = 10;
+const MIN_QUESTION_COUNT = 5;
+const MAX_QUESTION_COUNT = 15;
+
+// Falls back to the default whenever questionCount is missing or outside the allowed range.
+function resolveQuestionCount(value) {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < MIN_QUESTION_COUNT || parsed > MAX_QUESTION_COUNT) {
+        return DEFAULT_QUESTION_COUNT;
+    }
+    return parsed;
+}
+
 // Removes duplicates and unsupported names from the requested features list,
 // preserving the original order of first occurrence.
 function sanitizeFeatures(features) {
@@ -35,7 +48,8 @@ router.post("/", async (req, res) => {
     });
 
     try {
-        const { lessonId, features, profile } = req.body;
+        const { lessonId, features, profile, questionCount } = req.body;
+        const profileWithQuestionCount = { ...(profile || {}), quizCount: resolveQuestionCount(questionCount) };
 
         // 1- Validate lessonId
         if (!lessonId || isNaN(Number(lessonId))) {
@@ -103,7 +117,7 @@ router.post("/", async (req, res) => {
                 await generateAndSaveFeature({
                     lessonId,
                     feature,
-                    profile,
+                    profile: profileWithQuestionCount,
                     text,
                     mode: requestMode,
                 });

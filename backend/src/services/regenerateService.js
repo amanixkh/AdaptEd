@@ -45,12 +45,12 @@ function validateRequest({ lessonId, mode, features }) {
     return { normalizedMode, normalizedFeatures };
 }
 
-function buildProfile(mode) {
-    if (mode === MODE_DEFAULT) return { needs: [] };
-    return { needs: [mode.toLowerCase()] };
+function buildProfile(mode, quizCount) {
+    const needs = mode === MODE_DEFAULT ? [] : [mode.toLowerCase()];
+    return Number.isInteger(quizCount) ? { needs, quizCount } : { needs };
 }
 
-async function regenerateContent({ lessonId, mode, features }) {
+async function regenerateContent({ lessonId, mode, features, quizCount }) {
     const { normalizedMode, normalizedFeatures } = validateRequest({ lessonId, mode, features });
     console.log("[Regenerate] Loading lesson", {
         lessonId: Number(lessonId),
@@ -85,7 +85,7 @@ async function regenerateContent({ lessonId, mode, features }) {
         textLength: text.length,
     });
 
-    const profile = buildProfile(normalizedMode);
+    const profile = buildProfile(normalizedMode, Number(quizCount));
     const generated = [];
 
     for (const feature of normalizedFeatures) {

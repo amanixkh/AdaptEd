@@ -9,8 +9,19 @@ const CONTENT_TYPES=['summary','quiz','flashcards','simplified']
 const icons={summary:AlignLeft,quiz:ListChecks,flashcards:Layers,simplified:BookOpen}
 export default function StudentLesson(){const{id}=useParams(),{tr}=useApp(),[lesson,setLesson]=useState(null),[mode,setMode]=useState('summary'),[attempts,setAttempts]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState('')
  const names={summary:tr('Summary','الملخص'),quiz:tr('Quiz','الأسئلة'),flashcards:tr('Flashcards','بطاقات المراجعة'),simplified:tr('Simplified','نسخة مبسّطة')}
- useEffect(()=>{let active=true;setLoading(true);setError('')
-  Promise.all([api.studentLesson(id),api.quizAttempts(id).catch(()=>[])]).then(([lessonData,attemptRows])=>{if(!active)return;setLesson(lessonData);setAttempts(attemptRows)}).catch(()=>{if(active)setError(tr('Could not load this lesson.','تعذّر تحميل هذا الدرس.'))}).finally(()=>{if(active)setLoading(false)})
+ useEffect(()=>{let active=true
+  ;(async()=>{
+   setLoading(true);setError('')
+   try{
+    const[lessonData,attemptRows]=await Promise.all([api.studentLesson(id),api.quizAttempts(id).catch(()=>[])])
+    if(!active)return
+    setLesson(lessonData);setAttempts(attemptRows)
+   }catch{
+    if(active)setError(tr('Could not load this lesson.','تعذّر تحميل هذا الدرس.'))
+   }finally{
+    if(active)setLoading(false)
+   }
+  })()
   return()=>{active=false}
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[id])

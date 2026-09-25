@@ -3,6 +3,7 @@ const router = express.Router();
 
 const pool = require("../config/db");
 const { generateAIResponse, isRetryableProviderError } = require("../services/aiService");
+const { compactLongText } = require("../services/contentGenerationService");
 
 
 router.post("/summary/:lessonId", async (req, res) => {
@@ -35,9 +36,17 @@ router.post("/summary/:lessonId", async (req, res) => {
 
 
         // 2- Send text to Gemini, with automatic retry + OpenRouter fallback on
-        // temporary unavailability (handled centrally in aiService)
+        // temporary unavailability (handled centrally in aiService); long lessons are
+        // compacted first so the request never exceeds a safe context size.
+        const sourceText = await compactLongText(text);
         const aiResult = await generateAIResponse(
-            `Summarize this lesson in simple bullet points:\n\n${text}`
+            [
+                "You are an expert educational AI assistant. Accuracy is the top priority.",
+                "Use only information from the lesson below; never guess, fabricate, or add outside knowledge.",
+                "Write a clear, non-repetitive bullet-point summary covering the lesson's important concepts.",
+                "Reply with the bullet points only — no extra commentary.",
+                `Lesson:\n${sourceText}`,
+            ].join("\n\n")
         );
 
 

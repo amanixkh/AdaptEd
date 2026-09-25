@@ -1,5 +1,5 @@
 const pool = require("../config/db");
-const { createPrompt } = require("./ai/promptBuilder");
+const { createPrompt, resolveQuizCount } = require("./ai/promptBuilder");
 const { generate } = require("./ai/generateService");
 
 const MAX_DIRECT_TEXT_CHARS = Number(process.env.AI_MAX_DIRECT_TEXT_CHARS) || 30000;
@@ -83,7 +83,7 @@ function hasExactKeys(value, keys) {
         Object.keys(value).sort().join(",") === [...keys].sort().join(",");
 }
 
-function validateFeatureResponse(feature, text) {
+function validateFeatureResponse(feature, text, { quizCount } = {}) {
     const data = parseJson(text);
 
     if (!hasExactKeys(data, [feature])) {
@@ -102,8 +102,9 @@ function validateFeatureResponse(feature, text) {
     }
 
     if (feature === "quiz") {
-        if (data.quiz.length !== 0 && data.quiz.length !== 5) {
-            throw new Error("quiz must contain exactly 5 questions or be empty");
+        const expectedCount = Number.isInteger(quizCount) ? quizCount : resolveQuizCount();
+        if (data.quiz.length !== 0 && data.quiz.length !== expectedCount) {
+            throw new Error(`quiz must contain exactly ${expectedCount} questions or be empty`);
         }
 
         const questions = new Set();
@@ -233,9 +234,10 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
         sourcePreparationMs,
     });
 
+    const quizCount = feature === "quiz" ? resolveQuizCount(profile) : undefined;
     const { data, provider, timings } = await generate(prompt, {
         responseFormat: "json",
-        validate: (responseText) => validateFeatureResponse(feature, responseText),
+        validate: (responseText) => validateFeatureResponse(feature, responseText, { quizCount }),
     });
     const content = JSON.stringify(data);
 
@@ -268,4 +270,4 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
     return { generatedContentId, feature, content: data[feature] };
 }
 
-module.exports = { generateAndSaveFeature, validateFeatureResponse };
+module.exports = { generateAndSaveFeature, validateFeatureResponse, compactLongText };

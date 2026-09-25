@@ -2,7 +2,7 @@ const { regenerateContent, RegenerationError } = require("../services/regenerate
 const { isRetryableProviderError } = require("../services/ai/generateService");
 
 async function regenerate(req, res) {
-    const { lessonId, mode, features } = req.body || {};
+    const { lessonId, mode, features, quizCount } = req.body || {};
     const requestStartedAt = Date.now();
     res.once("finish", () => {
         console.log("[Regenerate] Request completed", {
@@ -20,7 +20,7 @@ async function regenerate(req, res) {
     });
 
     try {
-        const result = await regenerateContent({ lessonId, mode, features });
+        const result = await regenerateContent({ lessonId, mode, features, quizCount });
 
         console.log("[Regenerate] Response sent successfully", {
             lessonId,

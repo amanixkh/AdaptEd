@@ -9,6 +9,27 @@ const { computePercentage, isPassed } = require("../utils/quizScoring");
 
 const router = express.Router();
 
+function createUploadError(status, errorCode, message) {
+  const error = new Error(message);
+  error.status = status;
+  error.errorCode = errorCode;
+  return error;
+}
+
+function normalizeUploadError(error) {
+  if (error?.status && error?.errorCode) return error;
+
+  if (error?.code === "LIMIT_FILE_SIZE") {
+    return createUploadError(413, "PDF_TOO_LARGE", "The maximum file size is 20 MB.");
+  }
+
+  if (error?.code === "INVALID_FILE_TYPE") {
+    return createUploadError(400, "PDF_INVALID_TYPE", "Please choose a PDF file.");
+  }
+
+  return createUploadError(500, "PDF_UPLOAD_FAILED", "Error uploading PDF");
+}
+
 function ensureTeacher(req, res) {
   if (req.user.role !== "teacher") {
     res.status(403).json({ success: false, message: "Teacher access only" });
@@ -41,55 +62,121 @@ function looksLikeMojibake(text) {
   return matches.length / Math.max(text.length, 1) > 0.02;
 }
 
-router.post("/upload", authMiddleware, upload.single("pdf"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No PDF file uploaded" });
-    }
+function isEncryptedPdfError(error) {
+  const text = `${error?.message || ""}`.toLowerCase();
+  return text.includes("password") || text.includes("encrypted");
+}
 
-    const selectedLanguage = req.body.language || req.body.lang || req.body.lessonLanguage;
-    const dataBuffer = fs.readFileSync(req.file.path);
-    const parser = new PDFParse({ data: dataBuffer });
-    const data = await parser.getText();
-    let extractedText = cleanExtractedText(data.text);
-
-    if (!hasUsableExtractedText(extractedText)) {
-      console.warn("[PDF] pdf-parse returned empty or invalid text; switching to OCR", {
-        file: req.file.originalname,
-        language: selectedLanguage || "en",
-        extractedCharacters: extractedText.length,
+router.post("/upload", authMiddleware, (req, res) => {
+  upload.single("pdf")(req, res, async (uploadError) => {
+    if (uploadError) {
+      const normalizedError = normalizeUploadError(uploadError);
+      return res.status(normalizedError.status).json({
+        success: false,
+        message: normalizedError.message,
+        errorCode: normalizedError.errorCode,
       });
-      extractedText = await extractTextWithOcr(req.file.path, selectedLanguage);
     }
 
-    const result = await pool.query(
-      `INSERT INTO lessons
-       (user_id, title, original_name, file_size, file_path, extracted_text)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [
-        req.user.id,
-        req.file.originalname,
-        req.file.originalname,
-        req.file.size,
-        req.file.path,
-        extractedText,
-      ]
-    );
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No PDF file uploaded",
+          errorCode: "PDF_MISSING",
+        });
+      }
 
-    return res.status(200).json({
-      success: true,
-      message: "PDF uploaded and saved successfully",
-      lesson: result.rows[0],
-    });
-  } catch (error) {
-    console.error("PDF Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error uploading PDF",
-      error: error.message,
-    });
-  }
+      const selectedLanguage = req.body.language || req.body.lang || req.body.lessonLanguage;
+      const dataBuffer = fs.readFileSync(req.file.path);
+      let extractedText = "";
+
+      try {
+        const parser = new PDFParse({ data: dataBuffer });
+        try {
+          const data = await parser.getText();
+          extractedText = cleanExtractedText(data.text);
+        } finally {
+          if (parser.destroy) await parser.destroy();
+        }
+      } catch (parseError) {
+        if (isEncryptedPdfError(parseError)) {
+          throw createUploadError(
+            422,
+            "PDF_ENCRYPTED",
+            "This PDF is password protected. Please upload an unprotected PDF."
+          );
+        }
+
+        console.warn("[PDF] Text extraction failed; OCR fallback will be attempted", {
+          file: req.file.originalname,
+          error: parseError.message,
+        });
+      }
+
+      if (!hasUsableExtractedText(extractedText)) {
+        console.warn("[PDF] pdf-parse returned empty or invalid text; switching to OCR", {
+          file: req.file.originalname,
+          language: selectedLanguage || "en",
+          extractedCharacters: extractedText.length,
+        });
+
+        try {
+          extractedText = await extractTextWithOcr(req.file.path, selectedLanguage);
+        } catch (ocrError) {
+          console.error("[PDF] OCR fallback failed", {
+            file: req.file.originalname,
+            language: selectedLanguage || "en",
+            error: ocrError.message,
+          });
+          throw createUploadError(
+            422,
+            "PDF_OCR_FAILED",
+            "Could not process this PDF with OCR. Try a clearer scan or a text-based PDF."
+          );
+        }
+      }
+
+      if (!hasUsableExtractedText(extractedText)) {
+        throw createUploadError(
+          422,
+          "PDF_UNREADABLE",
+          "Could not extract readable text from this PDF. Try a text-based PDF or a clearer scan."
+        );
+      }
+
+      const lessonTitle = String(req.body.title || "").trim() || req.file.originalname;
+
+      const result = await pool.query(
+        `INSERT INTO lessons
+         (user_id, title, original_name, file_size, file_path, extracted_text)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [
+          req.user.id,
+          lessonTitle,
+          req.file.originalname,
+          req.file.size,
+          req.file.path,
+          extractedText,
+        ]
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "PDF uploaded and saved successfully",
+        lesson: result.rows[0],
+      });
+    } catch (error) {
+      const normalizedError = normalizeUploadError(error);
+      console.error("PDF Error:", error);
+      return res.status(normalizedError.status).json({
+        success: false,
+        message: normalizedError.message,
+        errorCode: normalizedError.errorCode,
+      });
+    }
+  });
 });
 
 router.get("/", authMiddleware, async (req, res) => {

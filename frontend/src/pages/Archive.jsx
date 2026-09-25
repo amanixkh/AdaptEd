@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { PageHeading } from "../components/UI";
 import { Archive, Trash2, ArchiveRestore } from "../components/Icons";
@@ -13,7 +13,23 @@ export function ArchivePage() {
   const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
-    loadArchivedLessons();
+    let active = true;
+    (async () => {
+      setLoading(true);
+      try {
+        await refreshArchive();
+      } catch (error) {
+        if (!active) return;
+        console.error("Error loading archived lessons:", error);
+        setToastMessage(tr("Failed to load archived lessons", "تعذّر تحميل الدروس المؤرشفة"));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -21,18 +37,6 @@ export function ArchivePage() {
     const id = setTimeout(() => setToastMessage(""), 2600);
     return () => clearTimeout(id);
   }, [toastMessage]);
-
-  async function loadArchivedLessons() {
-    setLoading(true);
-    try {
-      await refreshArchive();
-    } catch (error) {
-      console.error("Error loading archived lessons:", error);
-      setToastMessage(tr("Failed to load archived lessons", "تعذّر تحميل الدروس المؤرشفة"));
-    } finally {
-      setLoading(false);
-    }
-  }
 
   // Restoring updates the shared lesson list too, so it reappears on History/Dashboard immediately.
   async function handleRestore(lessonId) {

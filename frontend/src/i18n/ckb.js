@@ -50,6 +50,8 @@ Could not delete this version.|سڕینەوەی ئەم وەشانە سەرکەو
 Could not load lessons.|بارکردنی وانەکان سەرکەوتوو نەبوو.
 Could not log out. Try again.|چوونەدەرەوە سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.
 Could not process this PDF. Check the connection and use a text-based PDF; scanned files may require OCR.|پرۆسەکردنی PDF سەرکەوتوو نەبوو. پەیوەندی بپشکنە و PDFی دەقی بەکاربهێنە؛ فایلە وێنەییەکان لەوانەیە پێویستیان بە OCR بێت.
+Could not read this scanned PDF. Try a clearer scan or a text-based PDF.|نەتوانرا ئەم PDFەی وێنەییە بخوێندرێتەوە. وێنەیەکی ڕوونتر یان PDFی دەقی تاقی بکەرەوە.
+Could not extract readable text from this PDF. Try a text-based PDF or a clearer scan.|نەتوانرا دەقێکی خوێندراو لەم PDFە دەربهێنرێت. PDFی دەقی یان وێنەیەکی ڕوونتر تاقی بکەرەوە.
 Could not save changes. Please retry.|پاشەکەوتکردنی گۆڕانکارییەکان سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.
 Create a version, then review and refine it.|وەشانێک دروست بکە، پاشان پێداچوونەوەی بۆ بکە و باشتر بکە.
 Create account|دروستکردنی هەژمار

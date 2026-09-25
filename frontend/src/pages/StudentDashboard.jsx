@@ -5,7 +5,7 @@ import {useApp} from '../context/AppContext'
 import {PageHeading,Empty,Busy,ErrorBox} from '../components/UI'
 import {api,DEMO} from '../services/api'
 export default function StudentDashboard(){const{tr,lang,user}=useApp(),[lessons,setLessons]=useState([]),[loading,setLoading]=useState(!DEMO),[error,setError]=useState('')
- useEffect(()=>{if(DEMO){setLoading(false);return}
+ useEffect(()=>{if(DEMO)return
   let active=true
   api.studentLessons().then(rows=>{if(active)setLessons(rows)}).catch(()=>{if(active)setError(tr('Could not load your shared lessons.','تعذّر تحميل الدروس المشاركة.'))}).finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
