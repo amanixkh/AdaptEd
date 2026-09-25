@@ -30,7 +30,15 @@ function cleanExtractedText(text) {
 
 function hasUsableExtractedText(text) {
   const cleanedText = cleanExtractedText(text || "");
-  return cleanedText.replace(/\s/g, "").length >= 20;
+  if (cleanedText.replace(/\s/g, "").length < 20) return false;
+  return !looksLikeMojibake(cleanedText);
+}
+
+// Detects UTF-8 text that was mis-decoded as latin1/windows-1252 (e.g. Arabic/Kurdish PDFs)
+function looksLikeMojibake(text) {
+  const mojibakeMarkerPattern = /[ÃÂ][\u0080-\u00BF]|Ø[\u0080-\u00BF]|Ù[\u0080-\u00BF]|�/g;
+  const matches = text.match(mojibakeMarkerPattern) || [];
+  return matches.length / Math.max(text.length, 1) > 0.02;
 }
 
 router.post("/upload", authMiddleware, upload.single("pdf"), async (req, res) => {
@@ -114,7 +122,7 @@ router.get("/archived/list", authMiddleware, async (req, res) => {
     if (!ensureTeacher(req, res)) return;
 
     const result = await pool.query(
-      `SELECT id, title, original_name, file_path, created_at, archived_at,
+      `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at, l.archived_at,
               COUNT(gc.id)::int AS generated_count
        FROM lessons l
        LEFT JOIN generated_content gc ON gc.lesson_id = l.id
