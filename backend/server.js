@@ -6,6 +6,7 @@ const { startNotificationJobs } = require("./src/jobs/notificationjobs");
 const historyRoutes = require("./src/routes/historyRoutes");
 const lessonRoutes = require("./src/routes/lessonRoutes");
 const geminiRoutes = require("./src/routes/geminiRoutes");
+const generateRoutes = require("./src/routes/generateRoutes");
 const authRoutes = require("./src/routes/authRoutes");
 const testRoutes = require("./src/routes/testroutes");
 const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
@@ -22,11 +23,16 @@ app.use("/api/auth", authRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/gemini", geminiRoutes);
+app.use("/api/generate", generateRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.get("/", (req, res) => { res.send("AdaptEd backend is running!"); });
-const PORT = process.env.PORT || 5000; const HOST = "localhost";
+
+app.get("/", (req, res) => {
+  res.send("AdaptEd backend is running!");
+});
+
+const PORT = process.env.PORT || 5000;
+const HOST = "localhost";
 
 app.listen(PORT, HOST, () => {
-console.log(`Server running on http://${HOST}:${PORT}`);
-startNotificationJobs();
- });
+  console.log(`Server running on http://${HOST}:${PORT}`);
+});

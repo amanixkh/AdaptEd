@@ -14,5 +14,6 @@ const paths={
  AlignLeft:<><path d="M4 5h16M4 10h11M4 15h16M4 20h8"/></>,
 }
 function makeIcon(name){return function Icon({size=20,className='',...props}){return <svg width={size} height={size} viewBox="0 0 24 24" className={`adapt-icon ${className}`} fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>}}
+// eslint-disable-next-line react-refresh/only-export-components
 export const FileText=makeIcon('FileText'),LayoutDashboard=makeIcon('LayoutDashboard'),Upload=makeIcon('Upload'),UploadCloud=makeIcon('UploadCloud'),History=makeIcon('History'),BookOpen=makeIcon('BookOpen'),Brain=makeIcon('Brain'),Layers=makeIcon('Layers'),Sparkles=makeIcon('Sparkles'),Headphones=makeIcon('Headphones'),ListChecks=makeIcon('ListChecks'),AlignLeft=makeIcon('AlignLeft')
-export {ArrowUpRight,LoaderCircle,Languages,Accessibility,LogOut,Menu,X,ArrowRight,Check,Eye,EyeOff,LockKeyhole,Plus,ShieldCheck,Search,Download,Printer,Volume2,Square,Save,ChevronLeft,ChevronRight,RotateCcw,Play,Focus,Type,ArrowLeft,Settings2,CheckCircle2} from 'lucide-react'
+export {ArrowUpRight,LoaderCircle,Languages,Accessibility,LogOut,Menu,X,ArrowRight,Check,Eye,EyeOff,LockKeyhole,Plus,ShieldCheck,Search,Download,Printer,Volume2,Square,Save,ChevronLeft,ChevronRight,RotateCcw,Play,Focus,Type,ArrowLeft,Settings2,CheckCircle2,Trash2} from 'lucide-react'
