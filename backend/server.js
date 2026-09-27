@@ -14,6 +14,8 @@ const dashboardRoutes = require("./src/routes/dashboardRoutes");
 const notificationRoutes = require("./src/routes/notificationRoutes");
 const studentRoutes = require("./src/routes/studentRoutes");
 const subscriptionRoutes = require("./src/routes/subscriptionRoutes");
+const videoRoutes = require("./src/routes/videoRoutes");
+
 const app = express();
 
 app.use(cors());
@@ -29,6 +31,7 @@ app.use("/api/generate", generateRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api",subscriptionRoutes);
+app.use("/api/videos", videoRoutes);
 app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");
 });
