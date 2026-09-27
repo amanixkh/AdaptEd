@@ -12,11 +12,13 @@ const testRoutes = require("./src/routes/testroutes");
 const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
 const studentRoutes = require("./src/routes/studentRoutes");
+const chatRoutes = require("./src/routes/chatRoutes");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/chat", chatRoutes);
 app.use("/api/generated-content", generatedContentRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/auth", authRoutes);

@@ -34,6 +34,14 @@ pool
 			total INTEGER NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT NOW()
 		);
+		CREATE TABLE IF NOT EXISTS chat_messages (
+			id SERIAL PRIMARY KEY,
+			user_id INT REFERENCES users(id) ON DELETE CASCADE,
+			lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE,
+			role VARCHAR(20) CHECK (role IN ('user', 'assistant')),
+			message TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
 	`))
 	.then(() => pool.query("SELECT NOW()"))
 	.then((result) => {
