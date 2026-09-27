@@ -15,7 +15,27 @@ pool.on("error", (error) => {
 });
 
 pool
-	.query("SELECT NOW()")
+	.query(`
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+	`)
+	.then(() => pool.query(`
+		CREATE TABLE IF NOT EXISTS lesson_assignments (
+			id SERIAL PRIMARY KEY,
+			lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+			student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			assigned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			UNIQUE(lesson_id, student_id)
+		);
+		CREATE TABLE IF NOT EXISTS quiz_attempts (
+			id SERIAL PRIMARY KEY,
+			lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+			student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			score INTEGER NOT NULL,
+			total INTEGER NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);
+	`))
+	.then(() => pool.query("SELECT NOW()"))
 	.then((result) => {
 		console.log("PostgreSQL connected successfully!");
 		console.log("Database time:", result.rows[0].now);

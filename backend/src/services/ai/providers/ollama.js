@@ -1,5 +1,5 @@
-const BASE_URL = (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
-const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:7b";
+const BASE_URL = (process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1").replace(/\/$/, "");
+const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
 const TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 300000;
 
 async function generate(prompt, options = {}) {
@@ -7,10 +7,11 @@ async function generate(prompt, options = {}) {
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
     const body = JSON.stringify({
         model: MODEL,
-        prompt,
-        stream: false,
-        ...(options.responseFormat === "json" && { format: "json" }),
-        options: { temperature: 0.2 },
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        ...(options.responseFormat === "json" && {
+            response_format: { type: "json_object" },
+        }),
     });
     const payloadBytes = Buffer.byteLength(body, "utf8");
 
@@ -23,7 +24,7 @@ async function generate(prompt, options = {}) {
             timeoutSource: "AbortController setTimeout",
         });
         const requestStartedAt = Date.now();
-        const response = await fetch(`${BASE_URL}/api/generate`, {
+        const response = await fetch(`${BASE_URL}/chat/completions`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body,
@@ -54,11 +55,12 @@ async function generate(prompt, options = {}) {
             responseDurationMs: Date.now() - responseStartedAt,
         });
 
-        if (!data?.response) {
+        const content = data?.choices?.[0]?.message?.content;
+        if (!content) {
             throw new Error("Ollama returned an empty or malformed response");
         }
 
-        return data.response;
+        return content;
     } catch (error) {
         if (error.name === "AbortError") {
             const timeoutError = new Error(`Ollama request timed out after ${TIMEOUT_MS}ms`);

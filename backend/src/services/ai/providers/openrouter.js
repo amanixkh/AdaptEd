@@ -1,5 +1,5 @@
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = process.env.OPENROUTER_MODEL || "openrouter/free";
+const MODEL = process.env.OPENROUTER_MODEL || "deepseek/deepseek-chat-v3.1";
 const FALLBACK_MODEL = process.env.OPENROUTER_FALLBACK_MODEL;
 const TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS) || 45000;
 

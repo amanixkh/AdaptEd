@@ -1,14 +1,20 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
-const SELF_REGISTER_ROLE = "teacher";
+const ALLOWED_ROLES = ["teacher", "student"];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
+      });
+    }
+    const normalizedRole = String(role || "").trim().toLowerCase();
+    if (!ALLOWED_ROLES.includes(normalizedRole)) {
+      return res.status(400).json({
+        message: "Role must be either 'teacher' or 'student'",
       });
     }
     const normalizedEmail = email.trim().toLowerCase();
@@ -53,7 +59,7 @@ const register = async (req, res) => {
       `INSERT INTO users (name, email, password, role)
        VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, role`,
-      [name.trim(), normalizedEmail, hashedPassword, SELF_REGISTER_ROLE]
+      [name.trim(), normalizedEmail, hashedPassword, normalizedRole]
     );
 
     return res.status(201).json({

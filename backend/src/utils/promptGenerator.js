@@ -58,9 +58,22 @@ const LANGUAGE_ADAPTATIONS = {
     kurdish: "Write JSON string values in clear, natural Kurdish (Sorani). Keep JSON property names unchanged.",
 };
 
+// Frontend/lesson records use short language codes (en/ar/ckb); map them to the
+// long-form keys above so the language instruction is never silently dropped.
+const LANGUAGE_CODE_ALIASES = {
+    en: "english",
+    ar: "arabic",
+    ckb: "kurdish",
+};
+
+function resolveLanguageKey(language) {
+    const normalized = String(language || "").trim().toLowerCase();
+    return LANGUAGE_CODE_ALIASES[normalized] || normalized;
+}
+
 function buildProfileInstructions(profile) {
     const instructions = [];
-    const language = LANGUAGE_ADAPTATIONS[profile?.language];
+    const language = LANGUAGE_ADAPTATIONS[resolveLanguageKey(profile?.language)];
     const level = LEVEL_ADAPTATIONS[profile?.level];
     const needs = Array.isArray(profile?.needs) ? profile.needs : [];
 
