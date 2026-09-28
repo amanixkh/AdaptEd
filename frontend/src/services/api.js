@@ -39,7 +39,7 @@ export const api={
  students:async()=>(await client.get('/lessons/students')).data.students||[],
  share:async(id,studentIds)=>(await client.post(`/lessons/${encodeURIComponent(id)}/share`,{studentIds})).data,
  export:async(id,type,format)=>(await client.get(`/lessons/${encodeURIComponent(id)}/export`,{params:{type,format},responseType:'blob'})).data,
- tutor:async({messages,lessonId,lang,lessonText})=>{if(DEMO){await new Promise(r=>setTimeout(r,900+Math.random()*700));return demoTutorReply({messages,lang,lessonText})}return(await client.post('/tutor/chat',{messages,lessonId:lessonId||null,lang})).data.reply},
+tutor:async({messages,lessonId,lang,lessonText})=>{if(DEMO){await new Promise(r=>setTimeout(r,900+Math.random()*700));return demoTutorReply({messages,lang,lessonText})}const lastMessage=messages?.[messages.length-1];return(await client.post('/chat',{message:lastMessage?.content||'',history:messages,lessonId:lessonId||null})).data.reply},
  plans:async()=>(await client.get('/plans')).data.plans||[],
  subscriptionStatus:async()=>(await client.get('/subscription/status')).data.subscription,
  upgradeSubscription:async(planId,billingCycle)=>(await client.post('/subscription/upgrade',{planId,billingCycle})).data,
