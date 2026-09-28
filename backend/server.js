@@ -1,7 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+
 require("./src/config/db");
+
+const { startNotificationJobs } = require("./src/jobs/notificationjobs");
 
 const historyRoutes = require("./src/routes/historyRoutes");
 const lessonRoutes = require("./src/routes/lessonRoutes");
@@ -11,22 +14,37 @@ const authRoutes = require("./src/routes/authRoutes");
 const testRoutes = require("./src/routes/testroutes");
 const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
+const notificationRoutes = require("./src/routes/notificationRoutes");
 const studentRoutes = require("./src/routes/studentRoutes");
 const chatRoutes = require("./src/routes/chatRoutes");
+const subscriptionRoutes = require("./src/routes/subscriptionRoutes");
+const videoRoutes = require("./src/routes/videoRoutes");
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chat", chatRoutes);
+
 app.use("/api/generated-content", generatedContentRoutes);
 app.use("/api/test", testRoutes);
+
 app.use("/api/auth", authRoutes);
+
 app.use("/api/history", historyRoutes);
 app.use("/api/lessons", lessonRoutes);
+
 app.use("/api/gemini", geminiRoutes);
 app.use("/api/generate", generateRoutes);
+
+app.use("/api/notifications", notificationRoutes);
+
 app.use("/api/student", studentRoutes);
+
+app.use("/api", subscriptionRoutes);
+app.use("/api/videos", videoRoutes);
 
 app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");

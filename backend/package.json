@@ -25,6 +25,7 @@
     "form-data": "^4.0.6",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
+    "node-cron": "^4.6.0",
     "nodemon": "^3.1.14",
     "pdf-parse": "^2.4.5",
     "pdf-to-png-converter": "^4.2.1",

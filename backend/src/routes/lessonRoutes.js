@@ -55,7 +55,6 @@ function hasUsableExtractedText(text) {
   return !looksLikeMojibake(cleanedText);
 }
 
-// Detects UTF-8 text that was mis-decoded as latin1/windows-1252 (e.g. Arabic/Kurdish PDFs)
 function looksLikeMojibake(text) {
   const mojibakeMarkerPattern = /[ÃÂ][\u0080-\u00BF]|Ø[\u0080-\u00BF]|Ù[\u0080-\u00BF]|�/g;
   const matches = text.match(mojibakeMarkerPattern) || [];
@@ -203,7 +202,6 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// Specific routes before dynamic /:id routes
 router.get("/archived/list", authMiddleware, async (req, res) => {
   try {
     if (!ensureTeacher(req, res)) return;
