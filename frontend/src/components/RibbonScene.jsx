@@ -1,4 +1,5 @@
 import {useEffect,useRef} from 'react'
+import {forceMotion} from '../utils/splash'
 import * as THREE from 'three'
 import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js'
 
@@ -46,13 +47,14 @@ export default function RibbonScene(){
   const media=matchMedia('(prefers-reduced-motion: reduce)');let frame=0,last=0,time=2,visible=true,dead=false
   const draw=()=>renderer.render(scene,camera)
   function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();const k=Math.min(1,w/h/1.3);group.scale.setScalar((.55+.45*k)*.89);group.position.set(.22,-.12,0);shape(time);draw()}
-  const active=()=>!media.matches&&visible&&!document.hidden&&!dead
+  const active=()=>(forceMotion||!media.matches)&&visible&&!document.hidden&&!dead&&!(document.documentElement.dataset.splash==='on'&&document.querySelector('.splash-screen'))
   function tick(now){frame=0;if(!active())return;time+=last?Math.min((now-last)/1000,.05):0;last=now;shape(time);draw();frame=requestAnimationFrame(tick)}
   function sync(){cancelAnimationFrame(frame);frame=0;last=0;if(active())frame=requestAnimationFrame(tick);else draw()}
   resize();const ro=new ResizeObserver(resize);ro.observe(el)
   const io=new IntersectionObserver(([e])=>{visible=e.isIntersecting;sync()});io.observe(el)
-  media.addEventListener('change',sync);document.addEventListener('visibilitychange',sync);sync()
-  return()=>{dead=true;cancelAnimationFrame(frame);ro.disconnect();io.disconnect();media.removeEventListener('change',sync);document.removeEventListener('visibilitychange',sync);geo.dispose();front.dispose();back.dispose();env.dispose();pmrem.dispose();renderer.dispose();renderer.domElement.remove()}
+  media.addEventListener('change',sync);document.addEventListener('visibilitychange',sync);window.addEventListener('adapted:splash',sync);sync()
+  window.__adaptedSceneReady=true;window.dispatchEvent(new Event('adapted:scene-ready'))
+  return()=>{dead=true;cancelAnimationFrame(frame);ro.disconnect();io.disconnect();media.removeEventListener('change',sync);document.removeEventListener('visibilitychange',sync);window.removeEventListener('adapted:splash',sync);geo.dispose();front.dispose();back.dispose();env.dispose();pmrem.dispose();renderer.dispose();renderer.domElement.remove()}
  },[])
  return <div className="ribbon-canvas" ref={host} aria-hidden="true"/>
 }

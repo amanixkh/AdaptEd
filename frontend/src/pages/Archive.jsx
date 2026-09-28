@@ -1,36 +1,34 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
+import {demoBlocked} from '../utils/demoGuard'
 import { PageHeading } from "../components/UI";
 import { Archive, Trash2, ArchiveRestore } from "../components/Icons";
 import "../polish.css";
 
 export function ArchivePage() {
-  const { tr, archivedLessons, refreshArchive, restoreLesson, deleteForeverLesson } = useApp();
+  const { tr,lang,user,archivedLessons:archived,refreshArchive,restoreLesson,deleteForeverLesson } = useApp();
   const [loading, setLoading] = useState(true);
+  const [busy,setBusy]=useState(false);
   const [search, setSearch] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const locale=lang==='en'?'en-GB':lang==='ckb'?'ckb-IQ':'ar-IQ';
+  const date=value=>value?new Date(value).toLocaleDateString(locale):'—';
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      try {
-        await refreshArchive();
-      } catch (error) {
-        if (!active) return;
-        console.error("Error loading archived lessons:", error);
-        setToastMessage(tr("Failed to load archived lessons", "تعذّر تحميل الدروس المؤرشفة"));
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  async function loadArchivedLessons() {
+    setLoading(true);
+    try {
+      await refreshArchive();
+    } catch (error) {
+      console.error("Error loading archived lessons:", error);
+      setToastMessage(tr("Could not load archived lessons.", "تعذّر تحميل الدروس المؤرشفة."));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadArchivedLessons(); }, []);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -38,30 +36,31 @@ export function ArchivePage() {
     return () => clearTimeout(id);
   }, [toastMessage]);
 
-  // Restoring updates the shared lesson list too, so it reappears on History/Dashboard immediately.
-  async function handleRestore(lessonId) {
+  async function handleRestore(lessonId) {if(demoBlocked(user))return;
+    if(busy)return;setBusy(true);
     try {
       await restoreLesson(lessonId);
-      setToastMessage(tr("Lesson restored successfully", "تمت استعادة الدرس بنجاح"));
+      setToastMessage(tr("Lesson restored to your library.", "رجع الدرس إلى مكتبتك."));
       setConfirmingId(null);
     } catch (error) {
       console.error("Error restoring lesson:", error);
-      setToastMessage(tr("Failed to restore lesson", "تعذّرت استعادة الدرس"));
-    }
+      setToastMessage(tr("Could not restore this lesson.", "تعذّر استرجاع الدرس."));
+    }finally{setBusy(false)}
   }
 
-  async function handleDeleteForever(lessonId) {
+  async function handleDeleteForever(lessonId) {if(demoBlocked(user))return;
+    if(busy)return;setBusy(true);
     try {
       await deleteForeverLesson(lessonId);
-      setToastMessage(tr("Lesson permanently deleted", "تم حذف الدرس نهائياً"));
+      setToastMessage(tr("Lesson deleted permanently.", "حُذف الدرس نهائياً."));
       setConfirmingId(null);
     } catch (error) {
       console.error("Error deleting lesson:", error);
-      setToastMessage(tr("Failed to delete lesson", "تعذّر حذف الدرس"));
-    }
+      setToastMessage(tr("Could not delete this lesson.", "تعذّر حذف الدرس."));
+    }finally{setBusy(false)}
   }
 
-  const filtered = archivedLessons.filter((l) =>
+  const filtered = archived.filter((l) =>
     (l.title || l.original_name || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -105,9 +104,9 @@ export function ArchivePage() {
               <div className="archive-info">
                 <h3>{lesson.title || lesson.original_name}</h3>
                 <div className="archive-meta">
-                  <span>{tr("Uploaded", "رُفع")}: {new Date(lesson.created_at).toLocaleDateString()}</span>
-                  <span>{tr("Archived", "أُرشف")}: {new Date(lesson.archived_at).toLocaleDateString()}</span>
-                  <span className="pill">{lesson.generated_count || 0} {tr("Generated", "مُنشأ")}</span>
+                  <span>{tr("Uploaded","رُفع")}: {date(lesson.created_at)}</span>
+                  <span>{tr("Archived","أُرشف")}: {date(lesson.archived_at)}</span>
+                  <span className="pill">{lesson.generated_count || 0} {tr("versions","نسخ")}</span>
                 </div>
               </div>
 
@@ -116,11 +115,11 @@ export function ArchivePage() {
                   <div className="confirm-dialog">
                     <p className="confirm-text">
                       {confirmAction === "restore"
-                        ? tr("Restore this lesson to your library?", "استعادة هذا الدرس إلى مكتبتك؟")
-                        : tr("Permanently delete this lesson? This cannot be undone.", "حذف هذا الدرس نهائياً؟ لا يمكن التراجع عن هذا الإجراء.")}
+                        ? tr("Restore this lesson to your library?","إرجاع هذا الدرس إلى مكتبتك؟")
+                        : tr("Permanently delete this lesson? This cannot be undone.","حذف هذا الدرس نهائياً؟ لا يمكن التراجع.")}
                     </p>
                     <div className="confirm-buttons">
-                      <button
+                      <button disabled={busy}
                         onClick={() => {
                           if (confirmAction === "restore") {
                             handleRestore(lesson.id);
@@ -130,39 +129,39 @@ export function ArchivePage() {
                         }}
                         className={confirmAction === "delete" ? "soft-btn danger-btn" : "secondary-btn"}
                       >
-                        {confirmAction === "restore" ? tr("Restore", "استعادة") : tr("Delete Forever", "حذف نهائي")}
+                        {confirmAction === "restore" ? tr("Restore","استرجاع") : tr("Delete forever","حذف نهائي")}
                       </button>
-                      <button
+                      <button disabled={busy}
                         onClick={() => setConfirmingId(null)}
                         className="soft-btn"
                       >
-                        {tr("Cancel", "إلغاء")}
+                        {tr("Cancel","إلغاء")}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <button
+                    <button disabled={busy}
                       onClick={() => {
                         setConfirmingId(lesson.id);
                         setConfirmAction("restore");
                       }}
-                      className="secondary-btn"
-                      title={tr("Restore to active lessons", "استعادة إلى الدروس النشطة")}
+                      className="soft-btn"
+                      title={tr("Restore to active lessons","إرجاع إلى الدروس النشطة")}
                     >
                       <ArchiveRestore size={18} />
-                      {tr("Restore", "استعادة")}
+                      {tr("Restore","استرجاع")}
                     </button>
-                    <button
+                    <button disabled={busy}
                       onClick={() => {
                         setConfirmingId(lesson.id);
                         setConfirmAction("delete");
                       }}
                       className="soft-btn danger-btn"
-                      title={tr("Permanently delete (cannot undo)", "حذف نهائي (لا يمكن التراجع)")}
+                      title={tr("Permanently delete (cannot undo)","حذف نهائي (لا يمكن التراجع)")}
                     >
                       <Trash2 size={18} />
-                      {tr("Delete", "حذف")}
+                      {tr("Delete","حذف")}
                     </button>
                   </>
                 )}
@@ -180,4 +179,3 @@ export function ArchivePage() {
     </div>
   );
 }
-
