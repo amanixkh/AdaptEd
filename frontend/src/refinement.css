@@ -1,0 +1,22 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@source "./**/*.{jsx,js}";
+:root{--ease-out:cubic-bezier(.2,.8,.2,1)}
+.workspace .page-content{max-width:1440px;margin-inline:auto;width:100%;min-width:0}
+.workspace button,.workspace a{transition:background-color .2s,border-color .2s,box-shadow .2s,transform .2s var(--ease-out)}
+.workspace button:focus-visible,.workspace a:focus-visible{outline:3px solid #728936;outline-offset:4px}
+.workspace .primary-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px #26301818}
+.workspace .panel{border-color:#e2e5d9;border-radius:22px}
+.workspace .lesson-row:hover{background:#f2f6e8}
+.workspace .reading-text{overflow-wrap:anywhere}
+.notification-popover{position:absolute;inset-inline-end:0;top:calc(100% + 12px);width:min(370px,calc(100vw - 32px));z-index:70;background:#fffefb;color:#20251b;border:1px solid #dfe3d6;box-shadow:0 20px 70px #16200f26;border-radius:20px;padding:20px;max-height:65vh;overflow:auto}
+.learning-card:hover{border-color:#9eae7a;box-shadow:0 10px 30px #2630180b;transform:translateY(-3px)}
+.workspace .student-banner{background:linear-gradient(115deg,#eaf2d6,#f6f6ed 65%,#eeeafa)}
+.high-contrast .student-banner,.high-contrast .learning-card,.high-contrast .notification-popover{background:#fff;color:#000;border-color:#000}
+@media(max-width:700px){.workspace-top{flex-wrap:wrap;gap:12px!important}.top-tools{gap:8px!important}.breadcrumb{font-size:12px}.page-content{padding:24px 16px!important}.page-heading{flex-wrap:wrap;gap:16px}.page-heading h1{font-size:28px!important}.studio-tabs{display:flex;overflow-x:auto;max-width:100%}.studio-tabs button{flex-shrink:0}.toolbar,.result-actions,.export-bar{flex-wrap:wrap}.workspace .panel{padding:18px}.flashcard{min-height:220px!important}.workspace-body{min-width:0}.lesson-row{flex-wrap:wrap}.top-tools .soft-btn span{display:none}}
+@media(prefers-reduced-motion:reduce){html:not(.force-motion) *,html:not(.force-motion) *::before,html:not(.force-motion) *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.page-content:focus{outline:none}
+.workspace .sidebar-bottom{margin-top:auto}
+.workspace .result-panel .section-heading{flex-wrap:wrap;gap:12px}
+@media(max-width:700px){.notification-popover{position:fixed;inset-inline:16px;top:76px;width:auto;max-height:calc(100dvh - 100px)}}
