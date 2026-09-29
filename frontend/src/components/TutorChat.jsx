@@ -38,7 +38,7 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
  const listRef=useRef(null),inputRef=useRef(null),handled=useRef(null)
  const available=isStudent?[...lessons,...studentLessons.filter(s=>!lessons.some(l=>String(l.id)===String(s.id))).map(s=>({...s,shared:true}))]:lessons
  /* The team's chat backend answers about a lesson, so outside the demo a lesson is always chosen. */
- const needsLesson=!DEMO,activeId=lessonId||(needsLesson?String(available[0]?.id??''):'')
+ const needsLesson=!DEMO,activeId=lessonId||String(available[0]?.id??'')
  const lesson=available.find(l=>String(l.id)===String(activeId))
  const noLessons=needsLesson&&!available.length
 

@@ -1104,3 +1104,25 @@ html[dir=rtl] .hdr-btn.is-solid:hover svg{transform:scaleX(-1) translateX(3px)}
 .is-student-tutor .chat-suggestions button:hover,.is-student-tutor .chat-suggestions button:focus-visible{border-color:#b99cd4;background:#f6f1fc}
 .is-student-tutor .chat-send{background:#68508a}.is-student-tutor .chat-send:hover:not(:disabled){background:#513a75}
 .is-teacher-tutor .tutor-head{background:linear-gradient(100deg,#edf6e9,#fafcf6)}
+
+.up-hero{min-height:330px;padding:40px 46px!important;background:radial-gradient(circle at 80% 20%,#4d7954 0,transparent 41%),linear-gradient(115deg,#19362b,#294e3b 60%,#35684a)!important}
+.up-hero h1{font-size:clamp(40px,4vw,64px);line-height:1.02;max-width:12ch}
+.up-hero-sub{font-size:16px;max-width:43ch;margin-top:15px}
+.up-stage{height:250px;min-width:310px;isolation:isolate}
+.up-stage:before{content:'';position:absolute;z-index:-1;width:275px;height:275px;border:1px solid #dcefb84f;border-radius:50%;box-shadow:0 0 0 25px #ffffff0b,0 0 0 60px #ffffff07}
+.up-pdf{width:125px;height:166px;transform:rotate(-5deg);border-radius:17px}
+.up-out{opacity:1;white-space:nowrap;padding:11px 16px;border:1px solid #e8efdf;color:#273b2e}
+.up-out-a{top:0;left:3px;transform:rotate(-6deg)}.up-out-b{top:25px;right:0;transform:rotate(5deg)}.up-out-c{bottom:0;left:30px;transform:rotate(-3deg)}
+.student-banner,.workspace:not(.high-contrast) .student-banner{background:radial-gradient(circle at 92% 10%,#8b6baa80 0,transparent 36%),linear-gradient(120deg,#272940,#38304f 57%,#473655)!important;border-color:#5b4a71!important;color:#f7f4fb;box-shadow:0 23px 50px #2d214734}
+.student-banner:after{background:radial-gradient(circle,#ba9cde4a,transparent 70%)}
+.student-banner>div:first-child>span{color:#e9d9ff!important}.student-banner p,.student-banner .rounded-2xl span{color:#ddd4e8!important}.student-banner .rounded-2xl svg{color:#dcc7ff}
+.student-banner h2{font-size:clamp(32px,3vw,48px)!important;line-height:1.13;max-width:17ch;margin-bottom:13px}
+.student-banner-actions{display:flex;align-items:center;flex-wrap:wrap;gap:13px;margin-top:23px}
+.student-banner-cta,.student-banner-secondary{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:47px;border-radius:12px;padding:10px 17px;font-weight:700;font-size:13px;text-decoration:none}
+.student-banner-cta{background:#dcf2b5;color:#24352b;box-shadow:0 8px 20px #171b2740}.student-banner-cta:hover{background:#effbcf;transform:translateY(-2px)}
+.student-banner-secondary{color:#f7f0ff;border:1px solid #ffffff65}.student-banner-secondary:hover{background:#ffffff24}
+@media(max-width:759px){.up-hero{min-height:0;padding:29px 24px!important}.up-hero h1{font-size:clamp(33px,8.6vw,43px)}.up-hero .steps-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.up-hero .steps-strip>div{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-width:0;white-space:normal;font-size:10px;padding:8px;line-height:1.25}.up-hero .steps-strip>div span{width:20px;height:20px;font-size:10px}.student-banner-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.student-banner-cta,.student-banner-secondary{padding:9px;font-size:11px}}
+@media(max-width:430px){.up-hero .steps-strip>div{font-size:9px}.student-banner-actions{grid-template-columns:1fr 1fr}}
+
+@media(min-width:900px){html:has(.workspace){zoom:1!important}.workspace{min-height:100dvh!important}.workspace .page-content{width:100%;max-width:1520px;margin-inline:auto;padding:34px clamp(24px,3vw,48px) 55px!important}.workspace .workspace-body{min-height:100dvh}.workspace .sidebar{width:230px}.workspace .workspace-body{margin-inline-start:230px!important}.workspace.sidebar-collapsed .workspace-body{margin-inline-start:84px!important}}
+@media(max-width:700px){.tw-hint{display:none!important}}
