@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import {demoBlocked} from '../utils/demoGuard'
 import { PageHeading } from "../components/UI";
-import { Archive, Trash2, ArchiveRestore, Search, ArrowRight } from "../components/Icons";
+import { Archive, Trash2, ArchiveRestore, Search, ArrowRight, BookOpen } from "../components/Icons";
 import "../polish.css";
 import {Link} from "react-router-dom";
 
@@ -70,6 +70,7 @@ export function ArchivePage() {
 
   return (
     <div className="archive-container">
+      <section className="archive-feature"><div className="archive-feature-art" aria-hidden="true"><span><Archive size={28}/></span><i/><i/></div><div className="archive-feature-copy"><p>{user?.role==='student'?tr('YOUR STUDY LIBRARY','مكتبة تعلّمك'):tr('YOUR TEACHING LIBRARY','مكتبة دروسك')}</p><strong>{tr('Everything worth keeping, in one place.','كل دروسك المهمة بمكان واحد.')}</strong><span>{tr('Archived lessons stay here until you restore or delete them.','دروسك المؤرشفة تبقى هنا إلى أن تسترجعها أو تحذفها.')}</span></div><div className="archive-feature-count"><b>{archived.length}</b><small>{tr('Archived','مؤرشف')}</small></div></section>
       <PageHeading
         eyebrow={tr("MANAGE YOUR LIBRARY", "إدارة مكتبتك")}
         title={tr("Archived Lessons", "الدروس المؤرشفة")}
@@ -98,8 +99,8 @@ export function ArchivePage() {
           <p>
             {search
               ? tr("Try adjusting your search", "حاول تعديل بحثك")
-              : tr("Archive lessons to remove them from your active library", "أرشف الدروس لإزالتها من مكتبتك النشطة")}
-          </p>
+              : tr("Archived lessons will appear here when you move them out of your library.", "إذا أرشفت درساً، راح يظهر هنا وتكدر تسترجعه بأي وقت.")}
+          </p><Link className="soft-btn" to={libraryUrl}><BookOpen size={16}/>{tr("Go to my lessons","اذهب إلى دروسي")}</Link>
         </div>
       ) : (
         <div className="archive-list">

@@ -89,7 +89,7 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
  function removeChat(id){setSessions(old=>old.filter(s=>s.id!==id));if(id===sessionId)newChat()}
  const suggestions=isStudent?[tr('Explain this lesson simply','اشرح لي هذا الدرس ببساطة'),tr('Give me an example','أعطني مثالاً'),tr('Quiz me with 3 questions','اختبرني بثلاثة أسئلة'),tr('Help me review what I missed','ساعدني أراجع اللي ما فهمته')]:[tr('Suggest an accessible explanation','اقترح شرحاً ميسّراً'),tr('Adapt this lesson for attention needs','كيّف الدرس لاحتياجات التركيز'),tr('Suggest formative questions','اقترح أسئلة تقويمية'),tr('Plan a short class activity','خطط لنشاط صفي قصير')]
 
- return <div className={`tutor-card ${compact?'is-compact':''}`}>
+ return <div className={`tutor-card ${compact?'is-compact':''} ${isStudent?'is-student-tutor':'is-teacher-tutor'}`}>
   <header className="tutor-head">
    <span className="tutor-avatar" aria-hidden="true"><Logo/></span>
    <div className="tutor-title">{compact?<strong className="tutor-name">{isStudent?tr('Study Tutor','مساعد التعلّم'):tr('Teaching Assistant','مساعد المعلم')}</strong>:<h1>{isStudent?tr('Study Tutor','مساعد التعلّم'):tr('Teaching Assistant','مساعد المعلم')}</h1>}<p><span className="tutor-online"/>{isStudent?tr('Learn at your own pace','تعلّم على راحتك'):tr('Prepare and adapt your lessons','حضّر دروسك وكيّفها')}</p></div>
