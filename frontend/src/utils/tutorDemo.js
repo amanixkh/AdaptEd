@@ -7,11 +7,16 @@ const T={
 }
 const sentences=text=>String(text||'').split(/(?<=[.!?؟。])\s+|\n+/).map(s=>s.trim()).filter(s=>s.length>12)
 
-export function demoTutorReply({messages,lang,lessonText}){
+export function demoTutorReply({messages,lang,lessonText,role}){
  const last=[...messages].reverse().find(m=>m.role==='user')?.content||''
  if(/#error/i.test(last)){const e=new Error('Demo error');e.demo=true;throw e}
  const t=T[lang]||T.en,s=sentences(lessonText),q=last.toLowerCase()
  if(!s.length)return `${t.none}\n\n${t.tip}`
+ if(role==='teacher'){
+  const intro=lang==='ar'?'اقتراح لتحضير هذا الدرس:':lang==='ckb'?'پێشنیار بۆ ئامادەکردنی ئەم وانەیە:':'Teaching idea for this lesson:'
+  const activity=lang==='ar'?'ابدأ بنقاش قصير حول الفكرة، ثم اطلب من الطلاب شرحها بكلماتهم.':lang==='ckb'?'بە گفتوگۆیەکی کورت دەست پێ بکە، پاشان داوا لە قوتابییەکان بکە بە وشەکانی خۆیان ڕوونی بکەنەوە.':'Start with a short discussion, then ask students to explain it in their own words.'
+  return `${intro}\n\n• **${s[0]}**\n• ${s[Math.min(1,s.length-1)]}\n\n${activity}`
+ }
  if(/quiz|test|اختبر|اختبار|سؤال|تاقی|پرسیار/.test(q))return `${t.quiz}\n\n1. ${t.quizQ} ${s[0]}\n2. ${t.quizQ} ${s[Math.min(1,s.length-1)]}\n3. ${t.quizQ} ${s[Math.min(2,s.length-1)]}`
  if(/summar|main|points|لخص|ملخص|نقاط|پوخت|خاڵ/.test(q))return `${t.sum}\n\n${s.slice(0,5).map(x=>`• ${x}`).join('\n')}`
  const pick=(messages.length*3)%s.length

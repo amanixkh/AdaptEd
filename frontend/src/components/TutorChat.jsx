@@ -71,7 +71,7 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
   setLoading(true);setError('')
   try{
    const text=lesson?.text||(lesson?(await (lesson.shared?api.studentLesson(lesson.id):api.ownLesson(lesson.id)).catch(()=>null))?.text:'')
-   const reply=await api.tutor({messages:history,lessonId:lesson?.id,lang,lessonText:text})
+   const reply=await api.tutor({messages:history,lessonId:lesson?.id,lang,lessonText:text,role:user?.role})
    setMessages([...history,{role:'assistant',content:reply}]);onReply?.()
   }catch{setError(tr('The tutor could not answer right now. Please try again.','لم يتمكن المعلّم من الرد الآن. حاول مجدداً.'))}
   finally{setLoading(false);inputRef.current?.focus()}
@@ -87,12 +87,12 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
  function newChat(){setSessionId(crypto.randomUUID());setMessages([]);setError('');setInput('');setHistoryOpen(false);inputRef.current?.focus()}
  function openChat(s){setSessionId(s.id);setMessages(s.messages);setLessonId(s.lessonId||'');setError('');setHistoryOpen(false)}
  function removeChat(id){setSessions(old=>old.filter(s=>s.id!==id));if(id===sessionId)newChat()}
- const suggestions=[tr('Explain this lesson simply','اشرح لي هذا الدرس ببساطة'),tr('Give me an example','أعطني مثالاً'),tr('Quiz me with 3 questions','اختبرني بثلاثة أسئلة'),tr('Summarize the main points','لخّص النقاط الأساسية')]
+ const suggestions=isStudent?[tr('Explain this lesson simply','اشرح لي هذا الدرس ببساطة'),tr('Give me an example','أعطني مثالاً'),tr('Quiz me with 3 questions','اختبرني بثلاثة أسئلة'),tr('Help me review what I missed','ساعدني أراجع اللي ما فهمته')]:[tr('Suggest an accessible explanation','اقترح شرحاً ميسّراً'),tr('Adapt this lesson for attention needs','كيّف الدرس لاحتياجات التركيز'),tr('Suggest formative questions','اقترح أسئلة تقويمية'),tr('Plan a short class activity','خطط لنشاط صفي قصير')]
 
  return <div className={`tutor-card ${compact?'is-compact':''}`}>
   <header className="tutor-head">
    <span className="tutor-avatar" aria-hidden="true"><Logo/></span>
-   <div className="tutor-title">{compact?<strong className="tutor-name">{tr('AI Tutor','المعلّم الذكي')}</strong>:<h1>{tr('AI Tutor','المعلّم الذكي')}</h1>}<p><span className="tutor-online"/>{tr('Here to help, in your language','هنا لمساعدتك، بلغتك')}</p></div>
+   <div className="tutor-title">{compact?<strong className="tutor-name">{isStudent?tr('Study Tutor','مساعد التعلّم'):tr('Teaching Assistant','مساعد المعلم')}</strong>:<h1>{isStudent?tr('Study Tutor','مساعد التعلّم'):tr('Teaching Assistant','مساعد المعلم')}</h1>}<p><span className="tutor-online"/>{isStudent?tr('Learn at your own pace','تعلّم على راحتك'):tr('Prepare and adapt your lessons','حضّر دروسك وكيّفها')}</p></div>
    {compact&&fullPageLink&&<Link className="icon-btn" to={fullPageLink} onClick={onClose} aria-label={tr('Open full page','فتح الصفحة الكاملة')} title={tr('Open full page','فتح الصفحة الكاملة')}><Maximize2 size={16}/></Link>}
    <button type="button" className="icon-btn" onClick={()=>setHistoryOpen(v=>!v)} aria-expanded={historyOpen} aria-label={tr('Conversation history','سجل المحادثات')} title={tr('Conversation history','سجل المحادثات')}><History size={17}/></button>
    <button type="button" className="icon-btn" onClick={newChat} disabled={loading} aria-label={tr('New conversation','محادثة جديدة')} title={tr('New conversation','محادثة جديدة')}><Plus size={18}/></button>
@@ -108,7 +108,7 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
   {historyOpen&&<div className="tutor-history"><div className="tutor-history-head"><strong>{tr('Conversation history','سجل المحادثات')}</strong><small>{tr('Saved on this device','محفوظ على هذا الجهاز')}</small></div>{!sessions.length?<p>{tr('No previous conversations yet.','ماكو محادثات سابقة بعد.')}</p>:<div className="tutor-history-list">{sessions.map(s=><div className="tutor-history-item" key={s.id}><button type="button" onClick={()=>openChat(s)} disabled={loading} aria-current={s.id===sessionId?'true':undefined}><strong dir="auto">{s.title}</strong><small>{new Date(s.updatedAt).toLocaleDateString(lang==='ar'?'ar-IQ':'en-US')} · {available.find(l=>String(l.id)===String(s.lessonId))?.title||tr('Conversation','محادثة')}</small></button><button type="button" className="icon-btn" onClick={()=>removeChat(s.id)} disabled={loading} aria-label={tr('Delete conversation','حذف المحادثة')}><Trash2 size={16}/></button></div>)}</div>}</div>}
   <div className="chat-list" ref={listRef} role="log" aria-live="polite" aria-label={tr('Conversation','المحادثة')}>
    <div className="chat-row is-tutor"><span className="chat-mini-avatar" aria-hidden="true"><Logo/></span><div className="chat-bubble">
-    <p>{tr(`Hi${user?.name?`, ${user.name}`:''}! I'm your AdaptEd tutor.`,`أهلاً${user?.name?` ${user.name}`:''}! أنا معلّمك في AdaptEd.`)} {lesson?tr(`Let's work on “${lesson.title}”.`,`لنعمل على «${lesson.title}».`):tr('Pick a lesson above, or ask me anything.','اختر درساً من الأعلى، أو اسألني أي شيء.')}</p>
+    <p>{isStudent?tr(`Hi${user?.name?`, ${user.name}`:''}! Let's understand this together.`,`أهلاً${user?.name?` ${user.name}`:''}! خلّينا نفهم الدرس خطوة بخطوة.`):tr(`Hi${user?.name?`, ${user.name}`:''}! Let's make this lesson easier to teach.`,`أهلاً${user?.name?` ${user.name}`:''}! خلّينا نهيّئ الدرس لطلابك.`)} {lesson?tr(`We're working on “${lesson.title}”.`,`نعمل على «${lesson.title}».`):tr('Choose a lesson above to begin.','اختر درساً من الأعلى حتى نبدأ.')}</p>
    </div></div>
    {!messages.length&&<div className="chat-suggestions" aria-label={tr('Suggestions','اقتراحات')}>{suggestions.map(s=><button key={s} type="button" onClick={()=>send(s)} disabled={loading}>{s}</button>)}</div>}
    {messages.map((m,i)=><div key={i} className={`chat-row ${m.role==='user'?'is-user':'is-tutor'}`}>
@@ -122,7 +122,7 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
   {noLessons&&<p className="tutor-need-lesson" role="note">{tr('Upload or open a lesson first — the tutor answers about your lessons.','ارفع درساً أو افتحه أولاً — المعلّم يجيب عن دروسك.')}</p>}
   <form className="chat-composer" onSubmit={e=>{e.preventDefault();send()}}>
    <label htmlFor={compact?'tutor-input-mini':'tutor-input'} className="sr-only">{tr('Message','الرسالة')}</label>
-   <textarea id={compact?'tutor-input-mini':'tutor-input'} ref={inputRef} rows={1} value={input} maxLength={MAX_CHARS} placeholder={tr('Ask your tutor anything…','اسأل معلّمك أي شيء…')}
+   <textarea id={compact?'tutor-input-mini':'tutor-input'} ref={inputRef} rows={1} value={input} maxLength={MAX_CHARS} placeholder={isStudent?tr('What would you like to understand?','شنو تحب تفهم أكثر؟'):tr('Ask about explaining or adapting this lesson…','اسأل عن شرح الدرس أو تكييفه…')}
     onChange={e=>setInput(e.target.value)} disabled={noLessons} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();send()}}}/>
    <button type="submit" className="chat-send" disabled={!input.trim()||loading||noLessons} aria-label={tr('Send','إرسال')}><SendHorizontal size={18}/><span>{tr('Send','إرسال')}</span></button>
   </form>
