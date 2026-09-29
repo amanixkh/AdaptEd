@@ -82,7 +82,7 @@ export default function History() {
         <>
             <section className="library-feature">
                 <div className="library-feature-copy">
-            <PageHeading
+                    <PageHeading
                 eyebrow={tr(
                     'YOUR KNOWLEDGE, ORGANISED',
                     'معرفتك في مكان واحد'
@@ -95,14 +95,10 @@ export default function History() {
                     'Return to your lessons and continue where you left off.',
                     'ارجع إلى دروسك وأكمل من حيث توقّفت.'
                 )}
-            >
-                <Link to={uploadPath(user)} className="primary-btn">
-                    <Plus size={18} />
-                    {tr('New lesson', 'درس جديد')}
-                </Link>
-            </PageHeading>
+            />
 
                 <div className="library-feature-stats"><span><strong>{lessons.length}</strong>{tr('Lessons', 'دروس')}</span><span><strong>{lessons.reduce((count, lesson) => count + Object.keys(lesson.outputs || {}).length, 0)}</strong>{tr('Saved versions', 'نسخ محفوظة')}</span></div>
+                <Link to={uploadPath(user)} className="library-feature-action"><Plus size={18} />{tr('New lesson', 'درس جديد')}</Link>
                 </div>
                 <div className="library-feature-art" aria-hidden="true"><div className="library-book library-book-back"/><div className="library-book library-book-front"><BookOpen size={30}/><i/><i/><i/></div><span className="library-spark">✦</span></div>
             </section>
