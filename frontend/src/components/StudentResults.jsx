@@ -1,5 +1,5 @@
-/* Resource effects reset loading while synchronizing with remote data. */
-/* eslint-disable react-hooks/set-state-in-effect */
+                                                                          
+                                                    
 import {useEffect,useRef,useState} from 'react'
 import {Trophy,RefreshCw,Users,Check} from 'lucide-react'
 import {gsap} from 'gsap'

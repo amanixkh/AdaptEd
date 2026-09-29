@@ -3,7 +3,7 @@ import {ArrowLeft,ArrowRight} from 'lucide-react'
 import {useApp} from '../context/AppContext'
 import {Brand,Language} from './UI'
 
-/* Simple frame for public pages such as pricing and checkout. */
+                                                                 
 export default function PublicShell({children,back='/',backLabel}){
  const{tr,rtl,user}=useApp(),Back=rtl?ArrowRight:ArrowLeft
  return <div className="public-shell">

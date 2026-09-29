@@ -12,12 +12,12 @@ const OUTLINE_D=[
 ]
 const FILL=['currentColor','#a6cb49','#c8e979','#f8f7f2']
 
-/* One satin ribbon in the home page's lime tones, redrawn every frame.
-   - two faces (light / deeper lime) that take turns as it twists
-   - a satin glint that travels along it
-   - it wraps around the logo: behind at the top, in front at the bottom
-   - light specks trail from its head
-   - before the reveal it speeds up and widens its orbit */
+                                                                       
+                                                                 
+                                        
+                                                                        
+                                     
+                                                           
 const R={rx:132,ry:44,tilt:-12,speed:1.3,len:.72,width:18,twists:1.2,twistSpeed:.85,
  face:['#c6ec34','#fbffe6','#e9ffc0'],back:['#86b812','#c6ec34','#a6d21c']}
 const STEPS=90,SPECKS=18
@@ -146,8 +146,8 @@ export default function SplashScreen(){
     .call(()=>{el.classList.add('is-revealing');markSplashSeen();setCovering(false)},null,'-=.25')
     .to(el,{'--hole':radius+'px','--edge':'110px',duration:1.1,ease:'power2.inOut'},'<')
    const review=(import.meta.env.DEV||import.meta.env.VITE_SPLASH_REVIEW==='true')?parseFloat(new URLSearchParams(location.search).get('splash-hold')):NaN
-   /* On the home page, let the 3D scene finish its heavy first setup before the
-      splash starts moving, so nothing blocks the animation mid-way. */
+                                                                                
+                                                                       
    let started=false
    const whenIdle=fn=>window.requestIdleCallback?window.requestIdleCallback(fn,{timeout:700}):setTimeout(fn,120)
    const onReady=()=>{const fonts=document.fonts?.ready||Promise.resolve();Promise.race([fonts,new Promise(r=>setTimeout(r,900))]).then(()=>whenIdle(()=>requestAnimationFrame(()=>requestAnimationFrame(start))))}

@@ -5,7 +5,7 @@ import {useApp} from '../context/AppContext'
 import {api} from '../services/api'
 import {fileKind} from '../data/demo'
 
-/* Opens a lesson's original PDF in a window over the page, with open-in-tab and download. */
+                                                                                             
 export default function PdfViewer({lessonId,fileName,onClose}){
  const{tr}=useApp(),isVideo=fileKind(fileName)==='video',[url,setUrl]=useState(''),[state,setState]=useState('loading'),box=useRef(null)
  useEffect(()=>{

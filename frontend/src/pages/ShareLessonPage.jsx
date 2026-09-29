@@ -22,8 +22,8 @@ export default function ShareLessonPage(){
   }
   fetchStudents()
   return()=>{active=false}
- // Fetch only when the lesson changes.
- // eslint-disable-next-line react-hooks/exhaustive-deps
+                                       
+                                                        
  },[id])
  const matches=useMemo(()=>students.filter(s=>`${s.name||''} ${s.email||''}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())),[students,query])
  const toggle=studentId=>setSelected(old=>old.includes(studentId)?old.filter(value=>value!==studentId):[...old,studentId])

@@ -19,10 +19,10 @@ export default function Landing(){
  const [tab,setTab]=useState(1),[answer,setAnswer]=useState(null),[notice,setNotice]=useState(false)
  const paused=false
  const t=lang==='ckb'?landingCkb:dictionaries[lang],rtl=lang!=='en'
- useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';document.title=rtl?'AdaptEd | درس واحد لكل متعلّم':'AdaptEd | One lesson. Every learner.';try{localStorage.setItem('adapted-language',lang)}catch{/* Storage unavailable. */}},[lang,rtl])
+ useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';document.title=rtl?'AdaptEd | درس واحد لكل متعلّم':'AdaptEd | One lesson. Every learner.';try{localStorage.setItem('adapted-language',lang)}catch{                          }},[lang,rtl])
  useEffect(()=>{
-  /* The two small hand-written phrases are written stroke by stroke: right away on a
-     normal visit, or as soon as the opening splash starts revealing the page. */
+                                                                                     
+                                                                                 
   if(!writeNotes)return
   let ctx,waiting=false
   const write=()=>{ctx=gsap.context(()=>{

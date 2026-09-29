@@ -9,7 +9,7 @@ export function makeSample(lang){lang=sample[lang]?lang:'en';const s=sample[lang
 export function validatePdf(file){if(!file)return 'missing';if(!/\.pdf$/i.test(file.name))return 'type';if(file.size===0)return 'empty';if(file.size>20*1024*1024)return 'size';return null}
 export function outputText(value){if(typeof value==='string')return value;if(Array.isArray(value))return value.map((x,i)=>x.q?`${i+1}. ${x.q}\n${x.options.join('\n')}\n✓ ${x.options[x.correct]}`:`${x.front}\n${x.back}`).join('\n\n');return ''}
 
-/* Lesson files: PDFs (up to 20 MB) or MP4 videos (up to 200 MB) — matching the server. */
+                                                                                          
 export const MAX_PDF_BYTES=20*1024*1024,MAX_VIDEO_BYTES=200*1024*1024
 export const LESSON_FILE_ACCEPT='.pdf,application/pdf,.mp4,video/mp4'
 export function fileKind(file){const name=String(file?.name||file||'').toLowerCase(),type=file?.type||'';if(/\.pdf$/.test(name)||type==='application/pdf')return 'pdf';if(/\.(mp4|webm|mov|m4v)$/.test(name)||/^video\/(mp4|webm|quicktime|x-m4v)$/.test(type))return 'video';return null}

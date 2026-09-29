@@ -1,5 +1,5 @@
-/* Resource effects reset loading while synchronizing with remote data. */
-/* eslint-disable react-hooks/set-state-in-effect */
+                                                                          
+                                                    
 import {useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {ArrowUpRight,BookOpen,Search,RefreshCw,Layers,AlignLeft,ListChecks,Volume2,Upload} from 'lucide-react'
@@ -10,8 +10,8 @@ import {PageHeading,Empty,Busy,ErrorBox,LessonRow} from '../components/UI'
 import {api} from '../services/api'
 export default function StudentDashboard(){
  const{tr,lang,user,lessons:ownLessons}=useApp(),[lessons,setLessons]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[query,setQuery]=useState(''),[retry,setRetry]=useState(0)
- // Translation is read for the request; locale changes do not refetch data.
- // eslint-disable-next-line react-hooks/exhaustive-deps
+                                                                            
+                                                        
  useEffect(()=>{let active=true;setLoading(true);setError('');api.studentLessons().then(rows=>{if(active)setLessons(rows)}).catch(()=>{if(active)setError(tr('Could not load your shared lessons.','تعذّر تحميل الدروس المشاركة.'))}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[retry])
  const filtered=lessons.filter(l=>l.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
  return <><PageHeading eyebrow={tr('YOUR LEARNING SPACE','مساحة تعلّمك')} title={`${new Date().getHours()<12?tr('Good morning','صباح الخير'):new Date().getHours()<18?tr('Good afternoon','نهارك سعيد'):tr('Good evening','مساء الخير')}${lang==='en'?',':'،'} ${(user.name||'').split(' ')[0]}`} description={tr('One small step. A new possibility.','خطوة صغيرة تفتح لك إمكانات جديدة.')}/>

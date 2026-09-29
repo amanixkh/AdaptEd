@@ -1,4 +1,4 @@
-// Pricing for the design preview. Prices are in Iraqi dinar per month.
+                                                                       
 export const PLANS=[
  {id:'free',monthly:0,yearly:0,featured:false},
  {id:'pro',monthly:15000,yearly:12500,featured:true},

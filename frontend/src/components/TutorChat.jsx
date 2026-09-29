@@ -11,7 +11,7 @@ const MAX_CHARS=1500
 const load=key=>{try{return key?JSON.parse(localStorage.getItem(key))||null:null}catch{return null}}
 const titleFor=messages=>messages.find(message=>message.role==='user')?.content?.slice(0,56)||''
 
-/* Light formatting for tutor replies: paragraphs, bullet / numbered lines, **bold**. */
+                                                                                        
 function Formatted({text}){
  const inline=line=>line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>part.startsWith('**')&&part.endsWith('**')?<strong key={i}>{part.slice(2,-2)}</strong>:part)
  return String(text).split(/\n{2,}/).map((block,b)=>{
@@ -22,10 +22,10 @@ function Formatted({text}){
  })
 }
 
-/* The AI tutor conversation. Used full-size on the tutor page and compact in the floating widget.
-   - contextLessonId: the lesson the user is looking at (the widget follows the current page)
-   - conversations are stored per account in this browser
-   - pendingAsk: {id,text} a question sent from elsewhere (e.g. the quick-ask box) */
+                                                                                                  
+                                                                                             
+                                                         
+                                                                                     
 export default function TutorChat({compact=false,contextLessonId='',pendingAsk,onClose,onReply,fullPageLink}){
  const{tr,lang,user,lessons}=useApp(),isStudent=user?.role==='student'
  const archiveKey=`adapted-tutor-history:${user?.id||user?.email||user?.role||'guest'}`
@@ -37,27 +37,27 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
  const[messages,setMessages]=useState(saved?.sessions?.find(s=>s.id===saved.currentId)?.messages||[]),[input,setInput]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState('')
  const listRef=useRef(null),inputRef=useRef(null),handled=useRef(null)
  const available=isStudent?[...lessons,...studentLessons.filter(s=>!lessons.some(l=>String(l.id)===String(s.id))).map(s=>({...s,shared:true}))]:lessons
- /* The team's chat backend answers about a lesson, so outside the demo a lesson is always chosen. */
+                                                                                                     
  const needsLesson=!DEMO,activeId=lessonId||String(available[0]?.id??'')
  const lesson=available.find(l=>String(l.id)===String(activeId))
  const noLessons=needsLesson&&!available.length
 
  useEffect(()=>{if(!isStudent)return;let active=true;api.studentLessons().then(rows=>{if(active)setStudentLessons(rows)}).catch(()=>{});return()=>{active=false}},[isStudent])
  if(contextLessonId!==lastContext){setLastContext(contextLessonId);if(contextLessonId)setLessonId(String(contextLessonId))}
- // eslint-disable-next-line react-hooks/set-state-in-effect
+                                                            
  useEffect(()=>{
   if(!messages.length)return
   const now=new Date().toISOString()
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+                                                             
   setSessions(old=>{
    const previous=old.find(s=>s.id===sessionId)
    const current={id:sessionId,lessonId,messages:messages.slice(-30),updatedAt:now,title:titleFor(messages)}
    return [current,...old.filter(s=>s.id!==sessionId)].slice(0,30).map(s=>s.id===sessionId&&previous?{...s,updatedAt:now}:s)
   })
  },[messages,lessonId,sessionId])
- useEffect(()=>{try{localStorage.setItem(archiveKey,JSON.stringify({currentId:sessionId,sessions}))}catch{/* storage unavailable */}},[archiveKey,sessionId,sessions])
- // A different signed-in account must never inherit another account's local history.
- // eslint-disable-next-line react-hooks/set-state-in-effect
+ useEffect(()=>{try{localStorage.setItem(archiveKey,JSON.stringify({currentId:sessionId,sessions}))}catch{                         }},[archiveKey,sessionId,sessions])
+                                                                                     
+                                                            
  useEffect(()=>{const data=load(archiveKey);const rows=Array.isArray(data?.sessions)?data.sessions:[];const current=data?.currentId||crypto.randomUUID();setSessions(rows);setSessionId(current);setMessages(rows.find(s=>s.id===current)?.messages||[]);setLessonId(contextLessonId||rows.find(s=>s.id===current)?.lessonId||'')},[archiveKey])
  useLayoutEffect(()=>{
   const list=listRef.current;if(!list)return
