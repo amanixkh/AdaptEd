@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { demoBlocked } from '../utils/demoGuard'
+import { uploadPath } from '../utils/paths'
 import { Search, Plus, Archive } from '../components/Icons'
 import { useApp } from '../context/AppContext'
 import { PageHeading, Empty, LessonRow, ErrorBox, Busy, Toast } from '../components/UI'
@@ -93,7 +94,7 @@ export default function History() {
                     'ارجع إلى دروسك وأكمل من حيث توقّفت.'
                 )}
             >
-                <Link to="/app/upload" className="primary-btn">
+                <Link to={uploadPath(user)} className="primary-btn">
                     <Plus size={18} />
                     {tr('New lesson', 'درس جديد')}
                 </Link>
@@ -219,7 +220,7 @@ export default function History() {
                                     'ارفع درسك الأول للبدء.'
                                 )
                         }
-                        to="/app/upload"
+                        to={uploadPath(user)}
                         label={tr(
                             'Upload lesson',
                             'رفع درس'

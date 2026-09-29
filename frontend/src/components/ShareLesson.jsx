@@ -1,3 +1,5 @@
+/* Resource effects reset loading while synchronizing with remote data. */
+/* eslint-disable react-hooks/set-state-in-effect */
 import {useState,useEffect} from 'react'
 import {demoBlocked} from '../utils/demoGuard'
 import {Send,Users} from 'lucide-react'
@@ -5,7 +7,8 @@ import {api} from '../services/api'
 import {useApp} from '../context/AppContext'
 import {ErrorBox,Busy} from './UI'
 export default function ShareLesson({lessonId}){const{tr,user}=useApp(),[open,setOpen]=useState(false),[students,setStudents]=useState([]),[selected,setSelected]=useState([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState(false)
-
+ // Translation is read for the request; locale changes do not refetch data.
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  useEffect(()=>{if(!open)return;let active=true;setLoading(true);setError('');api.students().then(rows=>{if(active)setStudents(rows)}).catch(()=>{if(active)setError(tr('Could not load students.','تعذّر تحميل الطلاب.'))}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[open])
  async function share(){if(demoBlocked(user))return;setBusy(true);setError('');setSuccess(false);try{await api.share(lessonId,selected);setSuccess(true);setSelected([])}catch{setError(tr('Sharing failed. Please try again.','تعذّرت المشاركة. حاول مجدداً.'))}finally{setBusy(false)}}
  return <section className="panel mt-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="flex items-center gap-2 text-lg font-semibold"><Users size={19}/>{tr('Bring the lesson to your students','شارك الدرس مع طلابك')}</h2><p className="mt-2 text-sm text-[#657058]">{tr('Students can read the shared materials in their own workspace.','يستطيع الطلاب قراءة المواد في مساحة التعلّم الخاصة بهم.')}</p></div><button className="primary-btn" aria-expanded={open} onClick={()=>setOpen(!open)}>{tr('Share lesson','مشاركة الدرس')}</button></div>{open&&<div className="mt-5"><ErrorBox>{error}</ErrorBox>{loading?<Busy>{tr('Loading students…','جارٍ تحميل الطلاب…')}</Busy>:<><div className="mb-4 grid max-h-64 gap-2 overflow-auto sm:grid-cols-2">{students.map(student=><label key={student.id} className="flex items-center gap-3 rounded-xl border border-[#e1e6d7] p-3"><input type="checkbox" disabled={busy} checked={selected.includes(student.id)} onChange={e=>setSelected(old=>e.target.checked?[...old,student.id]:old.filter(id=>id!==student.id))}/><span className="min-w-0"><strong className="block truncate text-sm">{student.name}</strong><small className="block truncate">{student.email}</small></span></label>)}</div>{!students.length&&!error&&<p>{tr('No student accounts yet.','لا توجد حسابات طلاب بعد.')}</p>}<button className="soft-btn" disabled={busy||!selected.length} onClick={share}><Send size={16}/>{busy?tr('Sharing…','جارٍ المشاركة…'):tr('Share with selected students','مشاركة مع الطلاب المحددين')}</button></>}{success&&<p className="success mt-3" role="status">{tr('Lesson shared successfully.','تمت مشاركة الدرس بنجاح.')}</p>}</div>}</section>

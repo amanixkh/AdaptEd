@@ -1,4 +1,4 @@
-
+/* AdaptEd editorial system — warm paper, ink, botanical lime. */
 :root{--ae-ink:#263128;--ae-secondary:#667063;--ae-border:#dfe4d9;--ae-paper:#fcfcf8;--ae-radius:22px}
 .workspace{--ink:var(--ae-ink);--muted:var(--ae-secondary);--line:var(--ae-border);--bg:#f5f6f0;background:var(--bg);-webkit-font-smoothing:antialiased}
 .workspace .sidebar{background:#fdfdf8;padding:30px 18px 20px;border-color:#e0e5d8}

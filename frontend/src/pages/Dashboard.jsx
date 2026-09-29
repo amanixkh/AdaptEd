@@ -1,7 +1,7 @@
 import {useRef} from 'react'
 import {Link,useNavigate} from 'react-router-dom'
 import {useHeroMotion} from '../hooks/useHeroMotion'
-
+/* Wrap each word so the headline can rise in word by word. */
 const words=text=>String(text).split(' ').flatMap((w,i,a)=>[<span className="hw" key={i}><span>{w}</span></span>,i<a.length-1?' ':null])
 import {ArrowUpRight,Plus,FileText,Sparkles,BookOpen,Layers,ArrowRight,Check,Upload} from '../components/Icons'
 import {useApp} from '../context/AppContext'

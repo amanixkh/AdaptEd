@@ -28,6 +28,8 @@ export function ArchivePage() {
     }
   }
 
+  // Load the archive once on entry.
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { loadArchivedLessons(); }, []);
 
   useEffect(() => {

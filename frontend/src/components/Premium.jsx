@@ -2,6 +2,7 @@ import {useNavigate,Link} from 'react-router-dom'
 import {Lock,Gem,Sparkles} from 'lucide-react'
 import {useApp} from '../context/AppContext'
 
+/* Shows the teacher's current plan. */
 export function PlanBadge({compact=false}){
  const{tr,isPremium,user}=useApp()
  if(user?.role==='student')return null
@@ -10,6 +11,8 @@ export function PlanBadge({compact=false}){
   :<Link to="/app/upgrade" className={`plan-badge-pill is-free ${compact?'is-compact':''}`} title={tr('Free plan — upgrade','الخطة المجانية — ترقية')}>{tr('Free','مجاني')}</Link>
 }
 
+/* A button for a Premium feature. Premium users get the real button; everyone else
+   gets the same button with a lock, which opens the upgrade page for that feature. */
 export function LockedButton({feature,className='soft-btn',children,label}){
  const{tr,isPremium}=useApp(),navigate=useNavigate()
  if(isPremium)return children
@@ -18,6 +21,7 @@ export function LockedButton({feature,className='soft-btn',children,label}){
  </button>
 }
 
+/* A panel that stands in for a Premium section. */
 export function PremiumPanel({feature,title,text}){
  const{tr}=useApp(),navigate=useNavigate()
  return <section className="panel premium-panel" aria-label={title}>

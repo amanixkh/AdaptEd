@@ -8,11 +8,13 @@ import Logo from './Logo'
 
 const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches&&!document.documentElement.classList.contains('force-motion')
 
+/* A floating AI tutor that travels with you through the workspace. The conversation stays
+   while you move between pages, and it follows the lesson you are looking at. */
 export default function TutorWidget(){
  const{tr,user}=useApp(),{pathname}=useLocation(),isStudent=user?.role==='student'
  const[open,setOpen]=useState(false),[pending,setPending]=useState(null),[unread,setUnread]=useState(false),[hint,setHint]=useState(false)
  const panel=useRef(null),fab=useRef(null),openRef=useRef(false)
- const lessonMatch=pathname.match(/\/app\/(?:result|student\/lesson)\/([^/]+)/)
+ const lessonMatch=pathname.match(/\/app\/(?:result|student\/lesson|student\/result)\/([^/]+)/)
  const onTutorPage=/\/tutor\/?$/.test(pathname)
 
  const openPanel=()=>{setOpen(true);setUnread(false);setHint(false)}

@@ -3,13 +3,14 @@ import {SendHorizontal,RotateCcw,Trash2,BookOpen,AlertCircle,X,Maximize2} from '
 import {Link} from 'react-router-dom'
 import {gsap} from 'gsap'
 import {useApp} from '../context/AppContext'
-import {api} from '../services/api'
+import {api,DEMO} from '../services/api'
 import Logo from './Logo'
 
 const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches&&!document.documentElement.classList.contains('force-motion')
 const MAX_CHARS=1500
 const load=key=>{try{return key?JSON.parse(sessionStorage.getItem(key))||null:null}catch{return null}}
 
+/* Light formatting for tutor replies: paragraphs, bullet / numbered lines, **bold**. */
 function Formatted({text}){
  const inline=line=>line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>part.startsWith('**')&&part.endsWith('**')?<strong key={i}>{part.slice(2,-2)}</strong>:part)
  return String(text).split(/\n{2,}/).map((block,b)=>{
@@ -20,14 +21,21 @@ function Formatted({text}){
  })
 }
 
+/* The AI tutor conversation. Used full-size on the tutor page and compact in the floating widget.
+   - contextLessonId: the lesson the user is looking at (the widget follows the current page)
+   - storageKey: keep the conversation for this tab while moving between pages
+   - pendingAsk: {id,text} a question sent from elsewhere (e.g. the quick-ask box) */
 export default function TutorChat({compact=false,contextLessonId='',storageKey,pendingAsk,onClose,onReply,fullPageLink}){
  const{tr,lang,user,lessons}=useApp(),isStudent=user?.role==='student'
  const saved=load(storageKey)
  const[studentLessons,setStudentLessons]=useState([]),[lessonId,setLessonId]=useState(contextLessonId||saved?.lessonId||''),[lastContext,setLastContext]=useState(contextLessonId)
  const[messages,setMessages]=useState(saved?.messages||[]),[input,setInput]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState('')
  const listRef=useRef(null),inputRef=useRef(null),handled=useRef(null)
- const available=isStudent?studentLessons:lessons
- const lesson=available.find(l=>String(l.id)===String(lessonId))
+ const available=isStudent?[...lessons,...studentLessons.filter(s=>!lessons.some(l=>String(l.id)===String(s.id))).map(s=>({...s,shared:true}))]:lessons
+ /* The team's chat backend answers about a lesson, so outside the demo a lesson is always chosen. */
+ const needsLesson=!DEMO,activeId=lessonId||(needsLesson?String(available[0]?.id??''):'')
+ const lesson=available.find(l=>String(l.id)===String(activeId))
+ const noLessons=needsLesson&&!available.length
 
  useEffect(()=>{if(!isStudent)return;let active=true;api.studentLessons().then(rows=>{if(active)setStudentLessons(rows)}).catch(()=>{});return()=>{active=false}},[isStudent])
  if(contextLessonId!==lastContext){setLastContext(contextLessonId);if(contextLessonId)setLessonId(String(contextLessonId))}
@@ -51,7 +59,7 @@ export default function TutorChat({compact=false,contextLessonId='',storageKey,p
  }
  function send(textArg){
   const text=(textArg??input).trim()
-  if(!text||loading)return
+  if(!text||loading||noLessons)return
   const history=[...messages,{role:'user',content:text.slice(0,MAX_CHARS)}]
   setMessages(history);setInput('');ask(history)
  }
@@ -68,9 +76,9 @@ export default function TutorChat({compact=false,contextLessonId='',storageKey,p
    <button type="button" className="icon-btn" onClick={clear} disabled={!messages.length||loading} aria-label={tr('Clear conversation','مسح المحادثة')} title={tr('Clear conversation','مسح المحادثة')}><Trash2 size={16}/></button>
    {onClose&&<button type="button" className="icon-btn" onClick={onClose} aria-label={tr('Close','إغلاق')}><X size={18}/></button>}
    <label className="tutor-context"><BookOpen size={15}/><span className="sr-only">{tr('Lesson','الدرس')}</span>
-    <select value={lessonId} onChange={e=>setLessonId(e.target.value)} disabled={loading}>
-     <option value="">{tr('Any topic','أي موضوع')}</option>
-     {available.map(l=><option key={l.id} value={l.id}>{l.title}</option>)}
+    <select value={activeId} onChange={e=>setLessonId(e.target.value)} disabled={loading||noLessons}>
+     {!needsLesson&&<option value="">{tr('Any topic','أي موضوع')}</option>}{noLessons&&<option value="">{tr('No lessons yet','لا توجد دروس بعد')}</option>}
+     {available.map(l=><option key={l.id} value={l.id}>{l.shared?`${l.title} · ${tr('shared','مشارك')}`:l.title}</option>)}
     </select>
    </label>
   </header>
@@ -88,6 +96,7 @@ export default function TutorChat({compact=false,contextLessonId='',storageKey,p
    {error&&<div className="chat-row is-tutor"><span className="chat-mini-avatar is-error" aria-hidden="true"><AlertCircle size={16}/></span><div className="chat-bubble is-error" role="alert"><p>{error}</p><button type="button" className="soft-btn" onClick={retry}><RotateCcw size={14}/>{tr('Try again','حاول مجدداً')}</button></div></div>}
   </div>
 
+  {noLessons&&<p className="tutor-need-lesson" role="note">{tr('Upload or open a lesson first — the tutor answers about your lessons.','ارفع درساً أو افتحه أولاً — المعلّم يجيب عن دروسك.')}</p>}
   <form className="chat-composer" onSubmit={e=>{e.preventDefault();send()}}>
    <label htmlFor={compact?'tutor-input-mini':'tutor-input'} className="sr-only">{tr('Message','الرسالة')}</label>
    <textarea id={compact?'tutor-input-mini':'tutor-input'} ref={inputRef} rows={1} value={input} maxLength={MAX_CHARS} placeholder={tr('Ask your tutor anything…','اسأل معلّمك أي شيء…')}
