@@ -1,6 +1,7 @@
-import {useNavigate,Link} from 'react-router-dom'
+import {useNavigate,Link,useParams} from 'react-router-dom'
 import {Lock,Gem,Sparkles} from 'lucide-react'
 import {useApp} from '../context/AppContext'
+import StudentResults from './StudentResults'
 
 export function PlanBadge({compact=false}){
  const{tr,isPaidPlan,user,planRestrictionsBypassed}=useApp()
@@ -20,7 +21,8 @@ export function LockedButton({feature,className='soft-btn',children,label}){
 }
 
 export function PremiumPanel({feature,title,text}){
- const{tr,planRestrictionsBypassed}=useApp(),navigate=useNavigate()
+ const{tr,planRestrictionsBypassed}=useApp(),navigate=useNavigate(),{id}=useParams()
+ if(feature==='results'&&!planRestrictionsBypassed)return <StudentResults lessonId={id}/>
  if(planRestrictionsBypassed)return null
  return <section className="panel premium-panel" aria-label={title}>
   <span className="premium-panel-icon"><Lock size={18}/></span>
