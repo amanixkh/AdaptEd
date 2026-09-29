@@ -1062,3 +1062,22 @@ html[dir=rtl] .hdr-btn.is-solid:hover svg{transform:scaleX(-1) translateX(3px)}
 .student-tools-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:15px}.student-tools-head h2{margin:0}.student-tools-search{display:flex;align-items:center;gap:10px;border:1px solid #dbe6d7;border-radius:12px;padding:0 13px;max-width:450px;margin:0 0 20px;color:#658169;background:white}.student-tools-search:focus-within{outline:2px solid #6b9b70}.student-tools-search input{border:0;outline:0;background:transparent;min-width:0;width:100%;padding:12px 0}.student-tools-empty{padding:25px;text-align:center;color:#627469}
 @media(max-width:850px){.upload-intro{grid-template-columns:1fr}.student-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.student-shortcuts{grid-template-columns:1fr 1fr}.student-shortcuts a{padding:12px;font-size:12px;gap:6px}}
+
+/* Focused upload entry: pick the outcome first, then the file. */
+.upload-type-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0 8px}
+.upload-type-picker button{display:flex;align-items:center;gap:14px;text-align:start;min-width:0;padding:17px;border:1.5px solid #d9e4d4;border-radius:16px;background:#fbfdf9;color:#31543a;transition:background .2s,border-color .2s,box-shadow .2s,transform .2s}
+.upload-type-picker button:hover:not(:disabled),.upload-type-picker button:focus-visible,.upload-type-picker button.selected{background:#eaf5e8;border-color:#5d9765;box-shadow:0 0 0 3px #88b88a24;transform:translateY(-2px)}
+.upload-type-picker button>svg{padding:11px;box-sizing:content-box;border-radius:13px;background:#e4f0de;flex:none}
+.upload-type-picker button:last-child>svg{background:#efe9f8;color:#765b91}.upload-type-picker strong,.upload-type-picker small{display:block}.upload-type-picker strong{font-size:15px;color:#203b29}.upload-type-picker small{font-size:12px;line-height:1.5;color:#657766;margin-top:3px}
+.up-hero .steps-strip>div.done{background:#ffffff26!important;color:#fff!important;border-color:#dcef9f66!important}.up-hero .steps-strip>div.done span{background:#dcef9f!important;color:#2b3e30!important}
+.upload-panel .error-box{margin:14px 0}.upload-panel .drop-zone{margin-top:16px;min-height:205px;padding:20px}.upload-panel .drop-zone h3{font-size:19px}
+/* Stronger content hierarchy with consistent focus states across teacher and student pages. */
+.workspace .page-heading{margin-bottom:23px}.workspace .page-heading h1{line-height:1.16;letter-spacing:-.035em}.workspace .page-heading>.primary-btn,.workspace .page-heading>.secondary-btn{flex:none}
+.workspace .panel{box-shadow:0 10px 30px #26412b09}.workspace a:focus-visible,.workspace button:focus-visible,.workspace select:focus-visible,.workspace textarea:focus-visible{outline:3px solid #7bae7a;outline-offset:3px}
+.workspace .learning-card,.workspace .student-tool-grid a,.workspace .archive-row{transition:transform .2s,box-shadow .2s,border-color .2s}
+.workspace .learning-card:hover,.workspace .student-tool-grid a:hover,.workspace .archive-row:hover{transform:translateY(-3px);box-shadow:0 17px 35px #26412b17;border-color:#9abe9a}
+.student-banner{background:radial-gradient(circle at 90% 10%,#efe8f8 0,transparent 48%),linear-gradient(120deg,#e6f1df,#f4f6eb)!important;border-color:#d5e4cf!important;box-shadow:0 16px 45px #23412a15}
+.student-shortcuts a{min-height:62px}.student-shortcuts svg{color:#477952}.own-lessons{border-radius:22px}.learning-card h3{line-height:1.35}.student-tool-grid a{min-height:190px}.student-tool-grid a>span:last-child{padding-top:10px;border-top:1px solid #e9eee2}
+.archive-row{min-height:190px}.archive-actions{margin-top:auto;width:100%;border-top:1px solid #e9eee5;padding-top:12px}.archive-actions>button{flex:1;justify-content:center}.archive-meta{line-height:1.7}
+@media(max-width:650px){.upload-type-picker{grid-template-columns:1fr}.archive-row{min-height:0}.workspace .page-heading>.primary-btn,.workspace .page-heading>.secondary-btn{width:100%}.student-tool-grid{grid-template-columns:1fr}.student-tool-grid a{min-height:0}}
+@media(prefers-reduced-motion:reduce){html:not(.force-motion) .workspace .learning-card,html:not(.force-motion) .workspace .student-tool-grid a,html:not(.force-motion) .upload-type-picker button{transition:none;transform:none}}
