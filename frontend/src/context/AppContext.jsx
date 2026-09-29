@@ -1,6 +1,6 @@
 import {ckb} from '../i18n/ckb'
 import {createContext,useContext,useEffect,useState} from 'react'
-import {api,DEMO} from '../services/api'
+import {api,DEMO,PLAN_RESTRICTIONS_BYPASSED} from '../services/api'
 const Context=createContext(null)
 function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
 export function AppProvider({children}){
@@ -39,7 +39,8 @@ export function AppProvider({children}){
   return()=>{active=false}
  },[user])
  const plan=user?.plan||serverPlan||planStore[planKey]||'free'
- const isPremium=user?.role==='student'||plan==='pro'||plan==='school'
+ const isPaidPlan=user?.role==='student'||plan==='pro'||plan==='school'
+ const isPremium=PLAN_RESTRICTIONS_BYPASSED||isPaidPlan
  function setPlan(next){setPlanStore(old=>{const merged={...old,[planKey]:next};try{localStorage.setItem('adapted-plans',JSON.stringify(merged))}catch{/* ignore */}return merged});if(DEMO||user?.demo)return;setServerPlan(next)}
  
  async function upgradePlan(next,billing){
@@ -54,7 +55,7 @@ export function AppProvider({children}){
   setServerPlan(planFromServer(sub)||next)
  }
  function demoLogin(role='teacher'){setUser({name:role==='student'?tr('Demo student','الطالب التجريبي'):tr('Demo teacher','المعلم التجريبي'),role,demo:true})}
- return <Context.Provider value={{lang,setLang,tr,user,setUser,lessons,addLesson,updateLesson,deleteLesson,archiveLesson,restoreLesson,deleteForeverLesson,refreshArchive,archivedLessons,settings,setSettings,logout,demoLogin,plan,setPlan,upgradePlan,isPremium,loading,loadError,refresh,storageError}}>{children}</Context.Provider>
+ return <Context.Provider value={{lang,setLang,tr,user,setUser,lessons,addLesson,updateLesson,deleteLesson,archiveLesson,restoreLesson,deleteForeverLesson,refreshArchive,archivedLessons,settings,setSettings,logout,demoLogin,plan,setPlan,upgradePlan,isPremium,isPaidPlan,planRestrictionsBypassed:PLAN_RESTRICTIONS_BYPASSED,loading,loadError,refresh,storageError}}>{children}</Context.Provider>
 }
 
 export const useApp=()=>useContext(Context)

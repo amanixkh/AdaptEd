@@ -22,7 +22,7 @@ function Price({value,lang}){
 }
 
 export function PlansContent({inApp=false}){
- const{tr,lang,rtl,user,plan:currentPlan,isPremium}=useApp(),navigate=useNavigate(),[yearly,setYearly]=useState(true),[faq,setFaq]=useState(0),root=useRef(null)
+ const{tr,lang,rtl,user,plan:currentPlan,isPaidPlan}=useApp(),navigate=useNavigate(),[yearly,setYearly]=useState(true),[faq,setFaq]=useState(0),root=useRef(null)
  const Arrow=rtl?ArrowLeft:ArrowRight
  const info={
   free:{icon:User,name:tr('Starter','البداية'),tagline:tr('Try AdaptEd with your own lessons.','جرّب AdaptEd على دروسك.'),cta:tr('Start free','ابدأ مجاناً'),features:[tr('3 lessons a month','3 دروس شهرياً'),tr('Summaries and flashcards','ملخصات وبطاقات مراجعة'),tr('Arabic, English and Kurdish','العربية والإنكليزية والكردية')]},
@@ -78,7 +78,7 @@ export function PlansContent({inApp=false}){
   </section>
 
   <section className="plan-grid" aria-label={tr('Plans','الخطط')}>
-   {PLANS.map(plan=>{const p=info[plan.id],Icon=p.icon,price=yearly?plan.yearly:plan.monthly,current=!!user&&user.role!=='student'&&(plan.id===currentPlan||(plan.id==='free'&&!isPremium))
+  {PLANS.map(plan=>{const p=info[plan.id],Icon=p.icon,price=yearly?plan.yearly:plan.monthly,current=!!user&&user.role!=='student'&&(plan.id===currentPlan||(plan.id==='free'&&!isPaidPlan))
     return <article key={plan.id} className={`plan-card ${plan.featured?'is-featured':''}`}>
      {current?<span className="plan-badge is-current-badge">{tr('Current plan','خطتك الحالية')}</span>:plan.featured&&<span className="plan-badge">{tr('Most popular','الأكثر اختياراً')}</span>}
      <span className="plan-icon"><Icon size={20}/></span>

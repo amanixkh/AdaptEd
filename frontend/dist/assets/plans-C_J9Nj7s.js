@@ -1,0 +1,1 @@
+var e=[{id:`free`,monthly:0,yearly:0,featured:!1},{id:`pro`,monthly:15e3,yearly:12500,featured:!0},{id:`school`,monthly:12e4,yearly:1e5,featured:!1}],t=t=>e.find(e=>e.id===t),n=(e,t)=>new Intl.NumberFormat(t===`en`?`en-US`:`ar-IQ`).format(e);export{n,t as r,e as t};

@@ -11,7 +11,7 @@ import {planById,formatIQD} from '../data/plans'
 const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 export default function Upgrade(){
- const{tr,lang,rtl,user,isPremium,plan,setPlan}=useApp(),[params]=useSearchParams(),navigate=useNavigate(),root=useRef(null)
+ const{tr,lang,rtl,user,isPaidPlan,planRestrictionsBypassed,plan,setPlan}=useApp(),[params]=useSearchParams(),navigate=useNavigate(),root=useRef(null)
  const Arrow=rtl?ArrowLeft:ArrowRight,pro=planById('pro')
  const featureNames={adhd:tr('ADHD focus versions','نسخ التركيز لفرط الحركة'),dyslexia:tr('Dyslexia reading versions','نسخ القراءة لعسر القراءة'),quiz:tr('Quizzes','الاختبارات'),'read-aloud':tr('Read aloud','القراءة الصوتية'),export:tr('Export and print','التصدير والطباعة'),results:tr('Student results','نتائج الطلاب')}
  const tried=featureNames[params.get('feature')]
@@ -35,15 +35,15 @@ export default function Upgrade(){
    gsap.from('.upgrade-gem',{rotate:-25,scale:.4,opacity:0,duration:.8,ease:'back.out(2.4)',delay:.3})
   },root)
   return()=>ctx.revert()
- },[isPremium])
+ },[isPaidPlan])
 
  const cell=v=>v===true?<Check size={17} className="cmp-yes" aria-label={tr('Included','متوفر')}/>:v===false?<Lock size={15} className="cmp-no" aria-label={tr('Not included','غير متوفر')}/>:<span>{v}</span>
 
  return <div className="upgrade-page" ref={root}>
-  <PageHeading eyebrow={tr('YOUR PLAN','خطتك')} title={isPremium?tr('You are on Premium.','أنت على الخطة المميّزة.'):tr('Unlock everything in AdaptEd.','افتح كل ما في AdaptEd.')} description={isPremium?tr('Every feature is unlocked for your lessons and students.','كل الميزات مفتوحة لدروسك وطلابك.'):tr('Create every kind of version, follow your students, and share without limits.','أنشئ كل أنواع النسخ، وتابع طلابك، وشارك بلا حدود.')}/>
+  <PageHeading eyebrow={tr('YOUR PLAN','خطتك')} title={planRestrictionsBypassed?tr('Demo access is enabled.','إتاحة الوصول التجريبي مفعّلة.'):isPaidPlan?tr('You are on Premium.','أنت على الخطة المميّزة.'):tr('Unlock everything in AdaptEd.','افتح كل ما في AdaptEd.')} description={planRestrictionsBypassed?tr('Plan restrictions are bypassed for this demo.','تم تجاوز قيود الخطط في هذا العرض التجريبي.'):isPaidPlan?tr('Every feature is unlocked for your lessons and students.','كل الميزات مفتوحة لدروسك وطلابك.'):tr('Create every kind of version, follow your students, and share without limits.','أنشئ كل أنواع النسخ، وتابع طلابك، وشارك بلا حدود.')}/>
   <section className="upgrade-hero">
    <span className="upgrade-gem" aria-hidden="true"><Gem size={30}/></span>
-   <div><span className="upgrade-current">{tr('Current plan','خطتك الحالية')}: <PlanBadge/></span>{tried&&!isPremium&&<p className="upgrade-tried"><Lock size={14}/>{tr('You tried','حاولت استخدام')}: <strong>{tried}</strong> — {tr('it is part of Premium.','وهي ضمن الخطة المميّزة.')}</p>}</div>
+  <div><span className="upgrade-current">{tr('Current plan','خطتك الحالية')}: <PlanBadge/></span>{tried&&!isPaidPlan&&!planRestrictionsBypassed&&<p className="upgrade-tried"><Lock size={14}/>{tr('You tried','حاولت استخدام')}: <strong>{tried}</strong> — {tr('it is part of Premium.','وهي ضمن الخطة المميّزة.')}</p>}</div>
   </section>
 
   <div className="upgrade-grid">
@@ -54,7 +54,7 @@ export default function Upgrade(){
    </section>
 
    <aside className="upgrade-card upgrade-offer">
-    {isPremium?<>
+    {isPaidPlan?<>
      <span className="plan-badge-pill is-premium"><Gem size={12}/>{tr('Premium','مميّز')} · {plan==='school'?tr('School','المدرسة'):tr('Teacher Pro','المعلّم المحترف')}</span>
      <h2>{tr('All set.','كل شيء جاهز.')}</h2>
      <p>{tr('Your locked features are open now. Head back to a lesson and try them.','ميزاتك المقفلة مفتوحة الآن. ارجع لأي درس وجرّبها.')}</p>

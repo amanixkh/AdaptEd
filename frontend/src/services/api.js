@@ -3,6 +3,7 @@ import {sample} from '../data/demo.js'
 import {demoTutorReply} from '../utils/tutorDemo.js'
 
 export const DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
+export const PLAN_RESTRICTIONS_BYPASSED = DEMO || import.meta.env.VITE_BYPASS_PLAN_RESTRICTIONS === 'true'
 const TOKEN_KEY='adapted-auth-token',USER_KEY='adapted-auth-user'
 const generatedFeatures=['summary','quiz','flashcards']
 function demoLang(){try{const v=localStorage.getItem('adapted-language');return['en','ar','ckb'].includes(v)?v:'en'}catch{return'en'}}
