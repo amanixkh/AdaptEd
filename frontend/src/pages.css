@@ -1035,3 +1035,18 @@ html[dir=rtl] .hdr-btn.is-solid:hover svg{transform:scaleX(-1) translateX(3px)}
 .share-student-info{min-width:0;display:grid;gap:2px}.share-student-info strong,.share-student-info small{overflow-wrap:anywhere}.share-student-info small{color:#647367}
 .share-empty{padding:24px;text-align:center;color:#647367}.share-footer{border-top:1px solid #e3e9e0;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 @media(max-width:600px){.share-entry .primary-btn,.share-footer .primary-btn{width:100%;justify-content:center}}
+
+/* Upload journey and tutor history */
+.up-hero{min-height:295px;background:radial-gradient(circle at 82% 27%,#456a43 0,transparent 47%),linear-gradient(130deg,#243b2e,#315642)!important;border:1px solid #4a7050;box-shadow:0 20px 52px #1f3d2936!important}
+.up-hero-copy{max-width:560px}.up-hero h1{max-width:12ch;line-height:1.1}.up-hero-sub{line-height:1.65;max-width:48ch}
+.up-hero .steps-strip>div{white-space:nowrap}.up-hero .cx-aurora{opacity:.56}
+.upload-panel .drop-zone{transition:border-color .2s,background .2s,transform .2s}
+.upload-panel .drop-zone.dragging{border-color:#487c4d;background:#f0f8ee;transform:scale(1.01)}
+.upload-panel .drop-zone:focus-within{outline:2px solid #518c5c;outline-offset:3px}
+.tutor-history{padding:15px 20px;border-bottom:1px solid #e3eadd;background:#f7faf4;max-height:250px;overflow:auto}
+.tutor-history-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px;color:#293e2d}.tutor-history-head small{color:#687d6b}
+.tutor-history-list{display:grid;gap:6px}.tutor-history-item{display:flex;align-items:center;gap:6px;border:1px solid #e0e8db;background:white;border-radius:11px;padding:4px}
+.tutor-history-item>button:first-child{flex:1;min-width:0;border:0;background:transparent;text-align:start;padding:7px 9px;color:#283a2c;cursor:pointer}
+.tutor-history-item>button:first-child[aria-current=true]{background:#eef6e9;border-radius:7px}.tutor-history-item strong,.tutor-history-item small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tutor-history-item small{color:#728074;margin-top:3px}
+.tutor-history>p{color:#65766a;font-size:14px;margin:12px 0 0}
+@media(max-width:640px){.up-hero{padding:30px 23px;min-height:0}.up-hero h1{font-size:clamp(32px,9vw,44px)}.tutor-history{padding:12px}}

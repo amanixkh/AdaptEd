@@ -41,7 +41,7 @@ export default function TutorWidget(){
  if(onTutorPage)return null
  return <div className="tw" data-open={open}>
   <div ref={panel} className="tw-panel" role="dialog" aria-label={tr('AI Tutor','المعلّم الذكي')} hidden>
-   <TutorChat compact contextLessonId={lessonMatch?.[1]||''} storageKey="adapted-tutor-widget" pendingAsk={pending} onClose={()=>setOpen(false)} onReply={()=>{if(!openRef.current)setUnread(true)}} fullPageLink={isStudent?'/app/student/tutor':'/app/tutor'}/>
+   <TutorChat key={user?.id||user?.email||user?.role} compact contextLessonId={lessonMatch?.[1]||''} pendingAsk={pending} onClose={()=>setOpen(false)} onReply={()=>{if(!openRef.current)setUnread(true)}} fullPageLink={isStudent?'/app/student/tutor':'/app/tutor'}/>
   </div>
   {hint&&!open&&<button type="button" className="tw-hint" onClick={openPanel}>{tr('Stuck on something? Ask me.','محتار بشي؟ اسألني.')}</button>}
   <button ref={fab} type="button" className="tw-fab" aria-expanded={open} aria-label={open?tr('Close AI tutor','إغلاق المعلّم الذكي'):tr('Open AI tutor','فتح المعلّم الذكي')} onClick={()=>open?setOpen(false):openPanel()}>
