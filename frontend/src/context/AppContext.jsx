@@ -1,6 +1,7 @@
 import {ckb} from '../i18n/ckb'
 import {createContext,useContext,useEffect,useState} from 'react'
 import {api,DEMO,TEST} from '../services/api'
+import {makeSample} from '../data/demo'
 const Context=createContext(null)
 function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
 export function AppProvider({children}){
@@ -55,7 +56,7 @@ export function AppProvider({children}){
   const sub=await api.subscriptionStatus().catch(()=>null)
   setServerPlan(planFromServer(sub)||next)
  }
- function demoLogin(role='teacher'){setUser({name:role==='student'?tr('Demo student','الطالب التجريبي'):tr('Demo teacher','المعلم التجريبي'),role,demo:true})}
+ function demoLogin(role='teacher'){setUser({name:role==='student'?tr('Demo student','الطالب التجريبي'):tr('Demo teacher','المعلم التجريبي'),role,demo:true});if(TEST)setLessons(old=>old.some(l=>l.ownerRole===role)?old:[{...makeSample(lang),ownerRole:role},...old])}
  /* In the demo, teacher and student lessons share one browser, so each role only sees its own. */
  const myRole=user?.role==='student'?'student':'teacher'
  const visibleLessons=DEMO?lessons.filter(l=>(l.ownerRole||'teacher')===myRole):lessons
