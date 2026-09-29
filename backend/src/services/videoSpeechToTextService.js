@@ -85,11 +85,11 @@ function parseWhisperSegments(data) {
 }
 
 function getGroqAiApiKey() {
-  const apiKey = String(process.env.QROQ_API_KEY || "").trim();
+  const apiKey = String(process.env.GROQ_API_KEY || "").trim();
   if (!apiKey) {
     throw createSpeechToTextError(
-      "QROQAI_API_KEY is not configured. Add it to the backend .env file.",
-      { code: "QROQAI_API_KEY_MISSING" }
+      "GROQ_API_KEY is not configured. Add it to the backend .env file.",
+      { code: "GROQ_API_KEY_MISSING" }
     );
   }
   return apiKey;
@@ -169,8 +169,8 @@ function classifyWhisperError(error) {
 
   if (status === 401 || status === 403) {
     return createSpeechToTextError(
-      "GROQAI API key is missing or invalid",
-      { code: "GROQAI_API_KEY_INVALID", status, cause: error }
+      "Groq API key is missing or invalid",
+      { code: "GROQ_API_KEY_INVALID", status, cause: error }
     );
   }
 
@@ -243,7 +243,7 @@ async function transcribeVideo(videoPath, language) {
   });
 
   try {
-    getOpenAiApiKey();
+    getGroqAiApiKey();
     await assertReadableVideo(videoPath);
     await fs.mkdir(tempDir, { recursive: true });
     await extractAudio(videoPath, audioPath);

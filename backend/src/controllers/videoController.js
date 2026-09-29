@@ -1,42 +1,131 @@
 const fs = require("fs");
 const pool = require("../config/db");
+const { transcribeVideo, joinTranscriptText } = require("../services/videoSpeechToTextService");
+const { generateAndSaveFeature } = require("../services/contentGenerationService");
+
+const VIDEO_FEATURES = ["summary", "quiz", "flashcards"];
+
+function readFormArray(value, fallback = []) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 async function uploadVideo(req, res) {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      errorCode: "VIDEO_MISSING",
+      message: "No video file uploaded",
+    });
+  }
+
+  const language = ["en", "ar", "ckb"].includes(String(req.body?.language || "").toLowerCase())
+    ? String(req.body.language).toLowerCase()
+    : "en";
+  const title = String(req.body?.title || "").trim() || req.file.originalname;
+  let extractedText;
+  let lessonSaved = false;
+
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No video file uploaded" });
+    const segments = await transcribeVideo(req.file.path);
+    extractedText = joinTranscriptText(segments);
+    if (!extractedText) {
+      await fs.promises.unlink(req.file.path).catch(() => {});
+      return res.status(422).json({
+        success: false,
+        errorCode: "VIDEO_NO_SPEECH",
+        message: "No speech could be transcribed from this video.",
+      });
     }
+  } catch (error) {
+    await fs.promises.unlink(req.file.path).catch(() => {});
+    console.error("Video transcription error:", error);
+    const noReadableAudio = error.code === "INVALID_VIDEO" || error.code === "EMPTY_TRANSCRIPT";
+    const tooLarge = error.code === "AUDIO_TOO_LARGE";
+    const status = noReadableAudio ? 422 : tooLarge ? 413 : 503;
+    const errorCode = noReadableAudio
+      ? "VIDEO_NO_AUDIO"
+      : tooLarge
+        ? "VIDEO_AUDIO_TOO_LARGE"
+        : "VIDEO_TRANSCRIPTION_FAILED";
+    const message = noReadableAudio
+      ? "Could not extract readable audio. Make sure the video contains an audio track."
+      : tooLarge
+        ? "The extracted audio exceeds the speech transcription size limit."
+        : "Speech transcription is temporarily unavailable. Please try again.";
+    return res.status(status).json({ success: false, errorCode, message });
+  }
 
-    const { lessonId, title } = req.body || {};
-    const userId = req.user.id;
+  try {
+    const result = await pool.query(
+      `INSERT INTO lessons
+       (user_id, title, original_name, file_size, file_path, extracted_text, language)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [req.user.id, title, req.file.originalname, req.file.size, req.file.path, extractedText, language]
+    );
+    const lesson = result.rows[0];
+    lessonSaved = true;
 
-    if (lessonId) {
-      const lessonCheck = await pool.query(
-        "SELECT id FROM lessons WHERE id = $1 AND user_id = $2",
-        [lessonId, userId]
-      );
-      if (lessonCheck.rows.length === 0) {
-        return res.status(403).json({
-          success: false,
-          message: "You do not have access to this lesson",
+    const requestedFeatures = readFormArray(req.body?.features, ["summary"]);
+    const features = [...new Set(requestedFeatures)].filter((feature) => VIDEO_FEATURES.includes(feature));
+    const needs = readFormArray(req.body?.needs).filter((need) => typeof need === "string");
+    const levels = ["beginner", "intermediate", "advanced"];
+    const profile = {
+      language,
+      level: levels.includes(req.body?.level) ? req.body.level : "beginner",
+      needs,
+    };
+    const generated = [];
+    const failed = [];
+
+    for (const feature of features.length ? features : ["summary"]) {
+      try {
+        await generateAndSaveFeature({
+          lessonId: lesson.id,
+          feature,
+          profile,
+          text: extractedText,
         });
+        generated.push(feature);
+      } catch (error) {
+        console.error(`[VIDEO AI] ${feature} generation failed for lesson ${lesson.id}:`, error);
+        failed.push(feature);
       }
     }
 
-    const result = await pool.query(
-      `INSERT INTO videos (user_id, lesson_id, title, video_path)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [userId, lessonId || null, title || req.file.originalname, req.file.path]
+    const contentResult = await pool.query(
+      `SELECT id, content_type, content, created_at
+       FROM generated_content
+       WHERE lesson_id = $1
+       ORDER BY created_at DESC`,
+      [lesson.id]
     );
 
     return res.status(201).json({
       success: true,
-      message: "Video uploaded successfully",
-      video: result.rows[0],
+      message: failed.length
+        ? "Video lesson created, but some content could not be generated"
+        : "Video lesson created successfully",
+      lesson,
+      generated,
+      failed,
+      generatedContent: contentResult.rows,
     });
   } catch (error) {
-    console.error("Upload video error:", error);
-    return res.status(500).json({ success: false, message: "Failed to upload video" });
+    if (!lessonSaved) await fs.promises.unlink(req.file.path).catch(() => {});
+    console.error("Save video lesson error:", error);
+    return res.status(500).json({
+      success: false,
+      errorCode: "VIDEO_LESSON_SAVE_FAILED",
+      message: "The video was transcribed but could not be saved as a lesson.",
+    });
   }
 }
 

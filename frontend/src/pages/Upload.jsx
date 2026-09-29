@@ -5,8 +5,10 @@ import {useNavigate} from 'react-router-dom'
 import {UploadCloud,FileText,X,ArrowRight,Check,ShieldCheck,Sparkles} from '../components/Icons'
 import {useApp} from '../context/AppContext'
 import {ErrorBox,Busy} from '../components/UI'
-import {validatePdf,makeSample} from '../data/demo'
+import {makeSample} from '../data/demo'
 import {api,DEMO} from '../services/api'
+const VIDEO_MIME_TYPES=new Set(['video/mp4','video/webm','video/quicktime'])
+function getUploadType(file){if(file.type==='application/pdf'||/\.pdf$/i.test(file.name))return'pdf';if(VIDEO_MIME_TYPES.has(file.type)||/\.(mp4|webm|mov)$/i.test(file.name))return'video';return null}
 export default function Upload(){const{tr,lang,user,addLesson}=useApp(),navigate=useNavigate(),input=useRef(null),heroRef=useRef(null);const[file,setFile]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[progress,setProgress]=useState(0),[drag,setDrag]=useState(false),[title,setTitle]=useState(''),[level,setLevel]=useState('beginner'),[language,setLanguage]=useState(lang),[needs,setNeeds]=useState([]),[features,setFeatures]=useState(['summary'])
  useEffect(()=>{const el=heroRef.current;if(!el||(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches&&!document.documentElement.classList.contains('force-motion')))return
   const ctx=gsap.context(()=>{
@@ -30,31 +32,24 @@ export default function Upload(){const{tr,lang,user,addLesson}=useApp(),navigate
  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview)},[preview])
  function toggle(setter,list,value){setter(list.includes(value)?list.filter(x=>x!==value):[...list,value])}
  function preferences(){return {title:title.trim(),level,language,needs,features}}
- const errors={type:tr('Please choose a PDF file.','اختر ملف PDF.'),size:tr('The maximum file size is 20 MB.','الحد الأقصى لحجم الملف ٢٠ ميغابايت.'),empty:tr('This file is empty.','هذا الملف فارغ.'),missing:tr('Choose a file first.','اختر ملفاً أولاً.')}
  function choose(f){
   setError('');
+  const type=getUploadType(f);
 
-  const isPdf =
-    f.type === 'application/pdf' ||
-    /\.pdf$/i.test(f.name);
-
-  const isVideo =
-    f.type.startsWith('video/') ||
-    /\.(mp4|mov|webm)$/i.test(f.name);
-
-  if(!isPdf && !isVideo){
+  if(!type){
     setError(tr(
-      'Please choose a PDF or video file.',
-      'اختر ملف PDF أو فيديو.'
+      'Choose a PDF, MP4, WebM, or MOV file.',
+      'اختر ملف PDF أو MP4 أو WebM أو MOV.'
     ));
     setFile(null);
     return;
   }
 
-  if(f.size > 20 * 1024 * 1024){
+  const maximumSize=type==='pdf'?20*1024*1024:200*1024*1024;
+  if(f.size>maximumSize){
     setError(tr(
-      'The maximum file size is 20 MB.',
-      'الحد الأقصى لحجم الملف ٢٠ ميغابايت.'
+      type==='pdf'?'The maximum PDF size is 20 MB.':'The maximum video size is 200 MB.',
+      type==='pdf'?'الحد الأقصى لحجم PDF هو ٢٠ ميغابايت.':'الحد الأقصى لحجم الفيديو هو ٢٠٠ ميغابايت.'
     ));
     setFile(null);
     return;
@@ -72,12 +67,10 @@ export default function Upload(){const{tr,lang,user,addLesson}=useApp(),navigate
   setFile(f);
 
   if(!title){
-    setTitle(
-      f.name.replace(/\.(pdf|mp4|mov|webm)$/i,'')
-    );
+    setTitle(f.name.replace(/\.(pdf|mp4|mov|webm)$/i,''));
   }
 }
- async function upload(){if(demoBlocked(user))return;if(!file)return;if(!title.trim()){setError(tr('Add a lesson title.','أضف عنوان الدرس.'));return}if(!features.length){setError(tr('Choose at least one feature.','اختر ميزة واحدة على الأقل.'));return}if(DEMO){setError(tr('Real PDF processing needs the backend connection. Your file has not been uploaded. Use the clearly labelled sample below to explore the workflow.','معالجة PDF الحقيقي تحتاج ربط الباك إند. لم يُرفع ملفك. استخدم الدرس النموذجي أدناه لتجربة الخطوات.'));return}setBusy(true);setError('');try{const lesson=await api.upload(file,setProgress,preferences());if(!lesson?.id||!lesson.text?.trim())throw Error('No readable text');addLesson({...lesson,lang:language,preferences:preferences()});navigate(`/app/result/${lesson.id}`)}catch(error){const code=error?.code;const messageByCode={PDF_TOO_LARGE:tr('The maximum file size is 20 MB.','الحد الأقصى لحجم الملف ٢٠ ميغابايت.'),PDF_INVALID_TYPE:tr('Please choose a PDF file.','اختر ملف PDF.'),PDF_MISSING:tr('Choose a file first.','اختر ملفاً أولاً.'),PDF_OCR_FAILED:tr('Could not read this scanned PDF. Try a clearer scan or a text-based PDF.','تعذّرت قراءة هذا الملف المصوّر. جرّب نسخة أوضح أو PDF نصياً.'),PDF_UNREADABLE:tr('Could not extract readable text from this PDF. Try a text-based PDF or a clearer scan.','تعذّر استخراج نص قابل للقراءة من هذا الملف. جرّب PDF نصياً أو نسخة مصوّرة أوضح.'),PDF_ENCRYPTED:tr('This PDF is password protected. Please upload an unprotected PDF.','هذا الملف محمي بكلمة مرور. يرجى رفع ملف غير محمي.')};setError(messageByCode[code]||error?.message||tr('Could not process this PDF. Check the connection and use a text-based PDF; scanned files may require OCR.','تعذّرت معالجة الملف. افحص الاتصال واستخدم PDF نصياً؛ الملفات المصوّرة قد تحتاج OCR.'))}finally{setBusy(false)}}
+ async function upload(){if(demoBlocked(user))return;if(!file)return;const type=getUploadType(file);if(!type){setError(tr('Choose a PDF, MP4, WebM, or MOV file.','اختر ملف PDF أو MP4 أو WebM أو MOV.'));return}if(!title.trim()){setError(tr('Add a lesson title.','أضف عنوان الدرس.'));return}if(!features.length){setError(tr('Choose at least one feature.','اختر ميزة واحدة على الأقل.'));return}if(DEMO){setError(type==='video'?tr('Video uploads need a backend connection. Your file has not been uploaded.','رفع الفيديو يحتاج اتصالاً بالباك إند. لم يتم رفع الملف.'):tr('Real PDF processing needs the backend connection. Your file has not been uploaded. Use the clearly labelled sample below to explore the workflow.','معالجة PDF الحقيقي تحتاج ربط الباك إند. لم يُرفع ملفك. استخدم الدرس النموذجي أدناه لتجربة الخطوات.'));return}setBusy(true);setError('');try{const lesson=type==='video'?await api.uploadVideo(file,setProgress,title.trim(),preferences()):await api.upload(file,setProgress,preferences());if(!lesson?.id||!lesson.text?.trim())throw Error(type==='video'?'Video transcription returned no text':'No readable text');addLesson({...lesson,lang:language,preferences:preferences()});navigate(`/app/result/${lesson.id}`)}catch(error){const code=error?.code;const messageByCode={PDF_TOO_LARGE:tr('The maximum file size is 20 MB.','الحد الأقصى لحجم الملف ٢٠ ميغابايت.'),PDF_INVALID_TYPE:tr('Please choose a PDF file.','اختر ملف PDF.'),PDF_MISSING:tr('Choose a file first.','اختر ملفاً أولاً.'),PDF_OCR_FAILED:tr('Could not read this scanned PDF. Try a clearer scan or a text-based PDF.','تعذّرت قراءة هذا الملف المصوّر. جرّب نسخة أوضح أو PDF نصياً.'),PDF_UNREADABLE:tr('Could not extract readable text from this PDF. Try a text-based PDF or a clearer scan.','تعذّر استخراج نص قابل للقراءة من هذا الملف. جرّب PDF نصياً أو نسخة مصوّرة أوضح.'),PDF_ENCRYPTED:tr('This PDF is password protected. Please upload an unprotected PDF.','هذا الملف محمي بكلمة مرور. يرجى رفع ملف غير محمي.'),VIDEO_TOO_LARGE:tr('The maximum video size is 200 MB.','الحد الأقصى لحجم الفيديو هو ٢٠٠ ميغابايت.'),VIDEO_AUDIO_TOO_LARGE:tr('The extracted audio is too large to transcribe.','الصوت المستخرج كبير جداً لتفريغه.'),VIDEO_INVALID_TYPE:tr('Choose an MP4, WebM, or MOV file.','اختر ملف MP4 أو WebM أو MOV.'),VIDEO_NO_AUDIO:tr('This video has no readable audio track.','لا يحتوي الفيديو على مسار صوت قابل للقراءة.'),VIDEO_NO_SPEECH:tr('No speech was found in this video.','لم يُعثر على كلام في الفيديو.'),VIDEO_TRANSCRIPTION_FAILED:tr('Could not transcribe this video. Please try again.','تعذّر تفريغ الفيديو. حاول مجدداً.')};setError(messageByCode[code]||error?.message||tr('Could not process this PDF. Check the connection and use a text-based PDF; scanned files may require OCR.','تعذّرت معالجة الملف. افحص الاتصال واستخدم PDF نصياً؛ الملفات المصوّرة قد تحتاج OCR.'))}finally{setBusy(false)}}
  function sample(){if(!features.length){setError(tr('Choose at least one feature.','اختر ميزة واحدة على الأقل.'));return}const l=makeSample(language);l.preferences=preferences();addLesson(l);navigate(`/app/result/${l.id}`)}
  return <><section className="up-hero" ref={heroRef}><div className="cx-aurora" aria-hidden="true"><i/><i/><i/></div><div className="up-hero-copy"><p className="cx-eyebrow"><span className="cx-eyebrow-dot" aria-hidden="true"/>{tr('START WITH WHAT YOU HAVE','ابدأ بما لديك')}</p>
  <h1>{tr('Bring your lesson to life.','امنح درسك إمكانات جديدة.')}</h1><p className="up-hero-sub">{tr('Upload, review, then choose the support your learners need.','ارفع الدرس، راجعه، ثم اختر الدعم المناسب لطلابك.')}</p><div className="steps-strip">{[tr('Upload PDF','رفع PDF'),tr('Review text','مراجعة النص'),tr('Create versions','إنشاء النسخ')].map((s,i)=><div className={i===0?'current':''} key={s}><span>{i+1}</span>{s}</div>)}</div></div><div className="up-stage" aria-hidden="true"><div className="up-out up-out-a"><span>≡</span>{tr('Summary','ملخص')}</div><div className="up-out up-out-b"><span>?</span>{tr('Quiz','أسئلة')}</div><div className="up-out up-out-c"><span>▤</span>{tr('Flashcards','بطاقات مراجعة')}</div><div className="up-pdf"><b>PDF</b><i/><i/><i/><i/></div></div></section><div className="upload-grid"><section className="panel upload-panel"><h2>{tr('Your lesson file','ملف الدرس')}</h2><p className="muted">{tr('PDF documents · Up to 20 MB','ملفات PDF · حتى ٢٠ ميغابايت')}</p><div className={`drop-zone ${drag?'dragging':''} ${file?'has-file':''}`} onDragOver={e=>{e.preventDefault();if(!busy)setDrag(true)}} 

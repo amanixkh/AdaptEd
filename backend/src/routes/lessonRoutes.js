@@ -105,7 +105,8 @@ router.post("/upload", authMiddleware, (req, res, next) => {
         });
       }
 
-      const selectedLanguage = req.body.language || req.body.lang || req.body.lessonLanguage;
+      const selectedLanguage = String(req.body.language || req.body.lang || req.body.lessonLanguage || "en").toLowerCase();
+      const lessonLanguage = ["en", "ar", "ckb"].includes(selectedLanguage) ? selectedLanguage : "en";
       const dataBuffer = fs.readFileSync(req.file.path);
       let extractedText = "";
 
@@ -135,7 +136,7 @@ router.post("/upload", authMiddleware, (req, res, next) => {
       if (!hasUsableExtractedText(extractedText)) {
         console.warn("[PDF] pdf-parse returned empty or invalid text; switching to OCR", {
           file: req.file.originalname,
-          language: selectedLanguage || "en",
+          language: lessonLanguage,
           extractedCharacters: extractedText.length,
         });
 
@@ -144,7 +145,7 @@ router.post("/upload", authMiddleware, (req, res, next) => {
         } catch (ocrError) {
           console.error("[PDF] OCR fallback failed", {
             file: req.file.originalname,
-            language: selectedLanguage || "en",
+            language: lessonLanguage,
             error: ocrError.message,
           });
           throw createUploadError(
@@ -167,8 +168,8 @@ router.post("/upload", authMiddleware, (req, res, next) => {
 
       const result = await pool.query(
         `INSERT INTO lessons
-         (user_id, title, original_name, file_size, file_path, extracted_text)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         (user_id, title, original_name, file_size, file_path, extracted_text, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
         [
           req.user.id,
@@ -177,6 +178,7 @@ router.post("/upload", authMiddleware, (req, res, next) => {
           req.file.size,
           req.file.path,
           extractedText,
+          lessonLanguage,
         ]
       );
 
@@ -226,7 +228,7 @@ router.get("/archived/list", authMiddleware, async (req, res) => {
     if (!ensureLessonAccess(req, res)) return;
 
     const result = await pool.query(
-      `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at, l.archived_at,
+      `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at, l.archived_at, l.language,
               COUNT(gc.id)::int AS generated_count
        FROM lessons l
        LEFT JOIN generated_content gc ON gc.lesson_id = l.id
@@ -270,13 +272,40 @@ router.get("/students", authMiddleware, async (req, res) => {
   }
 });
 
+router.get("/:id/file", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+    const result = await pool.query(
+      `SELECT file_path FROM lessons l
+       WHERE l.id = $1 AND l.archived_at IS NULL
+         AND (
+           l.user_id = $2
+           OR EXISTS (
+             SELECT 1 FROM lesson_assignments la
+             WHERE la.lesson_id = l.id AND la.student_id = $2
+           )
+         )`,
+      [req.params.id, req.user.id]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].file_path || !fs.existsSync(result.rows[0].file_path)) {
+      return res.status(404).json({ success: false, message: "Lesson file not found" });
+    }
+
+    return res.sendFile(result.rows[0].file_path);
+  } catch (error) {
+    console.error("Get lesson file error:", error);
+    return res.status(500).json({ success: false, message: "Could not retrieve lesson file" });
+  }
+});
+
 // Dynamic /:id routes
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
     const lessonResult = await pool.query(
-      `SELECT id, user_id, title, file_path, extracted_text, created_at
+      `SELECT id, user_id, title, original_name, file_size, file_path, extracted_text, language, created_at
        FROM lessons
        WHERE id = $1 AND user_id = $2 AND archived_at IS NULL`,
       [lessonId, req.user.id]
