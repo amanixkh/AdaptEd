@@ -30,10 +30,29 @@ async function sendMessage(req, res) {
   const userMessage = String(message).trim();
   const userId = getAuthenticatedUserId(req);
 
+  if (userId == null) {
+    return res.status(401).json({
+      success: false,
+      message: "Access denied. No token provided.",
+    });
+  }
+
   try {
+    // The tutor may only be used on lessons the caller owns or (for students)
+    // lessons a teacher assigned to them, so lesson text never crosses user
+    // boundaries on its way to the AI provider.
     const lessonResult = await pool.query(
-      "SELECT extracted_text FROM lessons WHERE id = $1",
-      [lessonId]
+      `SELECT l.extracted_text
+       FROM lessons l
+       WHERE l.id = $1
+         AND (
+           l.user_id = $2
+           OR EXISTS (
+             SELECT 1 FROM lesson_assignments la
+             WHERE la.lesson_id = l.id AND la.student_id = $2
+           )
+         )`,
+      [lessonId, userId]
     );
 
     if (lessonResult.rows.length === 0) {

@@ -38,6 +38,22 @@ function ensureTeacher(req, res) {
   return true;
 }
 
+// Independent students manage the lessons they own themselves, so the lesson
+// CRUD routes below accept both roles. Ownership is still enforced by the
+// `user_id = $n` filter inside every query, so a lesson can only ever be read
+// or changed by the authenticated owner.
+function ensureLessonAccess(req, res) {
+  const role = req.user?.role;
+  if (role !== "teacher" && role !== "student") {
+    res.status(403).json({
+      success: false,
+      message: "Lesson access is limited to teachers and students",
+    });
+    return false;
+  }
+  return true;
+}
+
 function cleanExtractedText(text) {
   return text
     .split("\n")
@@ -66,7 +82,10 @@ function isEncryptedPdfError(error) {
   return text.includes("password") || text.includes("encrypted");
 }
 
-router.post("/upload", authMiddleware, (req, res) => {
+router.post("/upload", authMiddleware, (req, res, next) => {
+  if (!ensureLessonAccess(req, res)) return;
+  next();
+}, (req, res) => {
   upload.single("pdf")(req, res, async (uploadError) => {
     if (uploadError) {
       const normalizedError = normalizeUploadError(uploadError);
@@ -180,7 +199,7 @@ router.post("/upload", authMiddleware, (req, res) => {
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
     const result = await pool.query(
       `SELECT id, title, file_path, created_at
        FROM lessons
@@ -204,7 +223,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
 router.get("/archived/list", authMiddleware, async (req, res) => {
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
 
     const result = await pool.query(
       `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at, l.archived_at,
@@ -254,7 +273,7 @@ router.get("/students", authMiddleware, async (req, res) => {
 // Dynamic /:id routes
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
     const lessonResult = await pool.query(
       `SELECT id, user_id, title, file_path, extracted_text, created_at
@@ -292,9 +311,78 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// Edits the lesson record itself (title and/or OCR'd text). Ownership is part of
+// the UPDATE statement, so another user's lesson can never be modified.
+router.patch("/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+    const { id: lessonId } = req.params;
+    const { title, extractedText } = req.body || {};
+
+    const updates = [];
+    const values = [lessonId, req.user.id];
+
+    if (title !== undefined) {
+      const cleanTitle = String(title).trim();
+      if (!cleanTitle || cleanTitle.length > 200) {
+        return res.status(400).json({
+          success: false,
+          message: "Title must be between 1 and 200 characters",
+        });
+      }
+      values.push(cleanTitle);
+      updates.push(`title = $${values.length}`);
+    }
+
+    if (extractedText !== undefined) {
+      if (typeof extractedText !== "string" || !extractedText.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "extractedText must be a non-empty string",
+        });
+      }
+      values.push(extractedText);
+      updates.push(`extracted_text = $${values.length}`);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nothing to update: provide a title or extractedText",
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE lessons SET ${updates.join(", ")}
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NULL
+       RETURNING id, user_id, title, original_name, file_path, extracted_text, created_at`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson updated successfully",
+      lesson: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Update lesson error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
 router.patch("/:id/restore", authMiddleware, async (req, res) => {
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
 
     const result = await pool.query(
@@ -337,7 +425,7 @@ router.patch("/:id/restore", authMiddleware, async (req, res) => {
 router.delete("/:id/permanent", authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
     await client.query("BEGIN");
 
@@ -390,11 +478,15 @@ router.delete("/:id/permanent", authMiddleware, async (req, res) => {
 
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
 
+    // Ownership is checked inside the UPDATE so an already-archived or foreign
+    // lesson is never touched.
     const lessonResult = await pool.query(
-      `SELECT id FROM lessons WHERE id = $1 AND user_id = $2 AND archived_at IS NULL`,
+      `UPDATE lessons SET archived_at = NOW()
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NULL
+       RETURNING id`,
       [lessonId, req.user.id]
     );
 
@@ -404,11 +496,6 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         message: "Lesson not found",
       });
     }
-
-    await pool.query(
-      `UPDATE lessons SET archived_at = NOW() WHERE id = $1`,
-      [lessonId]
-    );
 
     return res.status(200).json({
       success: true,
@@ -486,7 +573,7 @@ router.post("/:id/share", authMiddleware, async (req, res) => {
 
 router.get("/:id/quiz-attempts", authMiddleware, async (req, res) => {
   try {
-    if (!ensureTeacher(req, res)) return;
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
 
     const lessonResult = await pool.query(

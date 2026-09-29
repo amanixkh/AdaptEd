@@ -2,19 +2,22 @@ const express = require("express");
 const router = express.Router();
 
 const pool = require("../config/db");
+const authMiddleware = require("../middleware/authMiddleware");
 const { generateAIResponse, isRetryableProviderError } = require("../services/aiService");
 const { compactLongText } = require("../services/contentGenerationService");
 
 
-router.post("/summary/:lessonId", async (req, res) => {
+router.post("/summary/:lessonId", authMiddleware, async (req, res) => {
     try {
 
         const { lessonId } = req.params;
 
 
+        // Ownership is part of the lookup, so a lesson can only be summarized by
+        // the user it belongs to.
         const lesson = await pool.query(
-            "SELECT extracted_text FROM lessons WHERE id = $1",
-            [lessonId]
+            "SELECT extracted_text FROM lessons WHERE id = $1 AND user_id = $2",
+            [lessonId, req.user.id]
         );
 
 

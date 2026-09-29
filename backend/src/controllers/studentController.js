@@ -9,6 +9,28 @@ function ensureStudent(req, res) {
   return true;
 }
 
+// A lesson is reachable by a student when the student owns it (independent
+// student) or a teacher assigned it to them (existing sharing flow). Everything
+// below is scoped to the authenticated student id, so another student's lesson
+// (or a teacher's private lesson) can never satisfy this check.
+async function hasLessonAccess(studentId, lessonId) {
+  const result = await pool.query(
+    `SELECT 1
+       FROM lessons l
+      WHERE l.id = $1
+        AND (
+          l.user_id = $2
+          OR EXISTS (
+            SELECT 1 FROM lesson_assignments la
+            WHERE la.lesson_id = l.id AND la.student_id = $2
+          )
+        )`,
+    [lessonId, studentId]
+  );
+
+  return result.rows.length > 0;
+}
+
 const getSharedLessons = async (req, res) => {
   try {
     if (!ensureStudent(req, res)) return;
@@ -17,12 +39,16 @@ const getSharedLessons = async (req, res) => {
       `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at,
               la.assigned_at,
               COUNT(gc.id)::int AS generated_count
-       FROM lesson_assignments la
-       JOIN lessons l ON l.id = la.lesson_id
+       FROM lessons l
+       LEFT JOIN lesson_assignments la
+         ON la.lesson_id = l.id AND la.student_id = $1
        LEFT JOIN generated_content gc ON gc.lesson_id = l.id
-       WHERE la.student_id = $1
+       WHERE (
+               la.student_id IS NOT NULL
+               OR (l.user_id = $1 AND l.archived_at IS NULL)
+             )
        GROUP BY l.id, la.assigned_at
-       ORDER BY la.assigned_at DESC`,
+       ORDER BY COALESCE(la.assigned_at, l.created_at) DESC`,
       [req.user.id]
     );
 
@@ -44,12 +70,7 @@ const getSharedLessonById = async (req, res) => {
     if (!ensureStudent(req, res)) return;
     const { id: lessonId } = req.params;
 
-    const assignmentResult = await pool.query(
-      `SELECT 1 FROM lesson_assignments WHERE lesson_id = $1 AND student_id = $2`,
-      [lessonId, req.user.id]
-    );
-
-    if (assignmentResult.rows.length === 0) {
+    if (!(await hasLessonAccess(req.user.id, lessonId))) {
       return res.status(404).json({
         success: false,
         message: "Lesson not found",
@@ -96,6 +117,13 @@ const getQuizAttempts = async (req, res) => {
   try {
     if (!ensureStudent(req, res)) return;
     const { id: lessonId } = req.params;
+
+    if (!(await hasLessonAccess(req.user.id, lessonId))) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
 
     const result = await pool.query(
       `SELECT id, score, total, created_at
@@ -157,12 +185,9 @@ const submitQuizAttempt = async (req, res) => {
       });
     }
 
-    const assignmentResult = await pool.query(
-      `SELECT 1 FROM lesson_assignments WHERE lesson_id = $1 AND student_id = $2`,
-      [lessonId, req.user.id]
-    );
-
-    if (assignmentResult.rows.length === 0) {
+    // The student must own the lesson (independent student) or have it assigned
+    // by a teacher before an attempt is stored for them.
+    if (!(await hasLessonAccess(req.user.id, lessonId))) {
       return res.status(404).json({
         success: false,
         message: "Lesson not found",

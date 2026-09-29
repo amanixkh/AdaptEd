@@ -1,5 +1,4 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const {
   sendMessage,
   getChatHistory,
@@ -9,22 +8,10 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-function optionalAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return next();
-  }
-
-  try {
-    req.user = jwt.verify(authHeader.split(" ")[1], process.env.JWT_SECRET);
-  } catch {
-    req.user = undefined;
-  }
-
-  next();
-}
-
-router.post("/", optionalAuth, sendMessage);
+// The tutor reads a lesson's text and sends it to the AI provider, so the caller
+// must be authenticated; chatController then verifies lesson access (owner or
+// assigned student) before loading any content.
+router.post("/", authMiddleware, sendMessage);
 router.get("/history/:lessonId", authMiddleware, getChatHistory);
 router.delete("/history/:lessonId", authMiddleware, deleteChatHistory);
 
