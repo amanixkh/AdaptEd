@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import {demoBlocked} from '../utils/demoGuard'
 import { PageHeading } from "../components/UI";
-import { Archive, Trash2, ArchiveRestore } from "../components/Icons";
+import { Archive, Trash2, ArchiveRestore, Search, ArrowRight } from "../components/Icons";
 import "../polish.css";
+import {Link} from "react-router-dom";
 
 export function ArchivePage() {
   const { tr,lang,user,archivedLessons:archived,refreshArchive,restoreLesson,deleteForeverLesson } = useApp();
@@ -15,6 +16,7 @@ export function ArchivePage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const locale=lang==='en'?'en-GB':lang==='ckb'?'ckb-IQ':'ar-IQ';
   const date=value=>value?new Date(value).toLocaleDateString(locale):'—';
+  const libraryUrl=user?.role==='student'?'/app/student/library':'/app/history';
 
   async function loadArchivedLessons() {
     setLoading(true);
@@ -63,7 +65,7 @@ export function ArchivePage() {
   }
 
   const filtered = archived.filter((l) =>
-    (l.title || l.original_name || "").toLowerCase().includes(search.toLowerCase())
+    `${l.title || l.original_name || ""} ${l.fileName || ""}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
   );
 
   return (
@@ -75,16 +77,16 @@ export function ArchivePage() {
           "Restore or permanently delete archived lessons.",
           "استعد الدروس المؤرشفة أو احذفها نهائياً."
         )}
-      />
+      ><Link className="secondary-btn" to={libraryUrl}>{tr("Open my lessons","افتح دروسي")}<ArrowRight size={16}/></Link></PageHeading>
 
-      <div className="archive-controls">
+      <div className="archive-controls"><label className="archive-search"><Search size={18}/>
         <input
           type="text"
           placeholder={tr("Search archived lessons…", "ابحث في الدروس المؤرشفة…")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="search-input"
-        />
+          className="search-input" aria-label={tr("Search archived lessons","البحث في الدروس المؤرشفة")}
+        /></label><span className="archive-count">{archived.length} {tr("archived lessons","دروس مؤرشفة")}</span>
       </div>
 
       {loading ? (
@@ -106,9 +108,9 @@ export function ArchivePage() {
               <div className="archive-info">
                 <h3>{lesson.title || lesson.original_name}</h3>
                 <div className="archive-meta">
-                  <span>{tr("Uploaded","رُفع")}: {date(lesson.created_at)}</span>
-                  <span>{tr("Archived","أُرشف")}: {date(lesson.archived_at)}</span>
-                  <span className="pill">{lesson.generated_count || 0} {tr("versions","نسخ")}</span>
+                  <span>{tr("Uploaded","رُفع")}: {date(lesson.created_at||lesson.createdAt)}</span>
+                  <span>{tr("Archived","أُرشف")}: {date(lesson.archived_at||lesson.archivedAt)}</span>
+                  <span className="pill">{lesson.generated_count ?? Object.keys(lesson.outputs||{}).length} {tr("versions","نسخ")}</span>
                 </div>
               </div>
 
@@ -174,7 +176,7 @@ export function ArchivePage() {
       )}
 
       {toastMessage && (
-        <div className="toast">
+        <div className="toast" role="status">
           <p>{toastMessage}</p>
         </div>
       )}
