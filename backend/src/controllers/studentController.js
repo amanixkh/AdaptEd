@@ -36,7 +36,7 @@ const getSharedLessons = async (req, res) => {
     if (!ensureStudent(req, res)) return;
 
     const result = await pool.query(
-      `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at,
+      `SELECT l.id, l.title, l.original_name, l.file_path, l.language, l.created_at,
               la.assigned_at,
               COUNT(gc.id)::int AS generated_count
        FROM lessons l
@@ -78,7 +78,7 @@ const getSharedLessonById = async (req, res) => {
     }
 
     const lessonResult = await pool.query(
-      `SELECT id, title, original_name, file_path, extracted_text, created_at
+      `SELECT id, title, original_name, file_path, extracted_text, language, created_at
        FROM lessons
        WHERE id = $1`,
       [lessonId]

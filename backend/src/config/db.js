@@ -17,6 +17,7 @@ pool.on("error", (error) => {
 pool
 	.query(`
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 'en';
 	`)
 	.then(() => pool.query(`
 		CREATE TABLE IF NOT EXISTS lesson_assignments (

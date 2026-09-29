@@ -16,10 +16,15 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, callback) => {
-  if (file.mimetype === "video/mp4") {
+  const supportedMimeTypes = ["video/mp4", "video/webm", "video/quicktime"];
+  const supportedExtension = /\.(mp4|webm|mov)$/i.test(file.originalname || "");
+
+  if (supportedMimeTypes.includes(file.mimetype) || supportedExtension) {
     return callback(null, true);
   }
-  return callback(new Error("Only MP4 files are allowed"), false);
+  const error = new Error("Only MP4, WebM, and MOV files are allowed");
+  error.code = "INVALID_FILE_TYPE";
+  return callback(error, false);
 };
 
 module.exports = multer({
