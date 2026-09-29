@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   uploadVideo,
+  getLessonSubtitle,
   getVideos,
   getVideoById,
   deleteVideo,
@@ -27,6 +28,7 @@ router.post("/upload", authMiddleware, (req, res, next) => {
     return uploadVideo(req, res, next);
   });
 });
+router.get("/subtitles/:lessonId/:language", authMiddleware, getLessonSubtitle);
 router.get("/", authMiddleware, getVideos);
 router.get("/:id", authMiddleware, getVideoById);
 router.delete("/:id", authMiddleware, deleteVideo);

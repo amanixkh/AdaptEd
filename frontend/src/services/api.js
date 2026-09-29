@@ -46,6 +46,7 @@ tutor:async({messages,lessonId,lang,lessonText})=>{if(DEMO){await new Promise(r=
  subscriptionStatus:async()=>(await client.get('/subscription/status')).data.subscription,
  upgradeSubscription:async(planId,billingCycle)=>(await client.post('/subscription/upgrade',{planId,billingCycle})).data,
  lessonFile:async id=>{if(DEMO||String(id).includes('-')){const r=await fetch('/samples/water-cycle.pdf');if(!r.ok)throw Error('missing');return r.blob()}return(await client.get(`/lessons/${encodeURIComponent(id)}/file`,{responseType:'blob',timeout:60000})).data},
+ lessonSubtitle:async(id,language)=>(await client.get(`/videos/subtitles/${encodeURIComponent(id)}/${encodeURIComponent(language)}`,{responseType:'blob'})).data,
  contact:async payload=>{if(DEMO)return{success:true};return(await client.post('/contact',payload)).data},
  studentLessons:async()=>{if(DEMO)return[demoStudentLesson()];const rows=(await client.get('/student/lessons')).data.lessons||[];return rows.map(normalizeSharedLesson)},
  studentLesson:async id=>{if(DEMO)return demoStudentLesson();const response=await client.get(`/student/lessons/${encodeURIComponent(id)}`);return normalizeLesson(response.data.lesson,response.data.generatedContent)},

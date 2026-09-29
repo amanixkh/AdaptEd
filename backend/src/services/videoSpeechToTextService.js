@@ -44,6 +44,14 @@ function normalizeSpeechLanguage(language) {
   return null;
 }
 
+function normalizeDetectedLanguage(language) {
+  const value = String(language || "").trim().toLowerCase();
+  if (["en", "eng", "english"].includes(value)) return "en";
+  if (["ar", "ara", "arabic"].includes(value)) return "ar";
+  if (["ckb", "ku", "kur", "kurdish", "sorani", "central kurdish"].includes(value)) return "ckb";
+  return null;
+}
+
 function formatTimestamp(seconds) {
   const totalSeconds = Math.max(0, Math.round(Number(seconds) || 0));
   const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
@@ -62,23 +70,35 @@ function joinTranscriptText(segments) {
 
 function parseWhisperSegments(data) {
   const segments = Array.isArray(data?.segments) ? data.segments : [];
-  const parsed = segments
-    .map((segment) => ({
-      start: formatTimestamp(segment.start),
-      end: formatTimestamp(segment.end),
+  if (segments.length > 0) {
+    const parsed = segments.map((segment) => ({
+      start: Number(segment.start),
+      end: Number(segment.end),
       text: String(segment.text || "").trim(),
-    }))
-    .filter((segment) => segment.text);
+    }));
 
-  if (parsed.length > 0) return parsed;
+    if (parsed.some((segment) => !segment.text || !Number.isFinite(segment.start) ||
+        !Number.isFinite(segment.end) || segment.start < 0 || segment.end <= segment.start)) {
+      throw createSpeechToTextError("Whisper returned invalid timestamped transcript segments", {
+        code: "INVALID_TRANSCRIPT_SEGMENTS",
+      });
+    }
+    return parsed;
+  }
 
   const fallbackText = String(data?.text || "").trim();
   if (!fallbackText) return [];
+  const duration = Number(data?.duration);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw createSpeechToTextError("Whisper returned transcript text without a valid duration", {
+      code: "INVALID_TRANSCRIPT_SEGMENTS",
+    });
+  }
 
   return [
     {
-      start: "00:00:00",
-      end: formatTimestamp(data?.duration),
+      start: 0,
+      end: duration,
       text: fallbackText,
     },
   ];
@@ -230,7 +250,7 @@ async function transcribeAudioWithWhisper(audioPath, language) {
   }
 }
 
-async function transcribeVideo(videoPath, language) {
+async function transcribeVideo(videoPath, language, { includeMetadata = false } = {}) {
   const startedAt = Date.now();
   const whisperLanguage = normalizeSpeechLanguage(language);
   const tempDir = path.join(STT_TEMP_ROOT, `${Date.now()}-${crypto.randomUUID()}`);
@@ -263,6 +283,9 @@ async function transcribeVideo(videoPath, language) {
       durationMs: Date.now() - startedAt,
     });
 
+    if (includeMetadata) {
+      return { segments, sourceLanguage: normalizeDetectedLanguage(whisperResponse.language) };
+    }
     return segments;
   } catch (error) {
     const normalized = classifyWhisperError(error);
@@ -285,6 +308,8 @@ async function transcribeVideo(videoPath, language) {
 module.exports = {
   transcribeVideo,
   formatTimestamp,
+  parseWhisperSegments,
   joinTranscriptText,
   normalizeSpeechLanguage,
+  normalizeDetectedLanguage,
 };

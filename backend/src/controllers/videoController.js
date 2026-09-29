@@ -2,6 +2,7 @@ const fs = require("fs");
 const pool = require("../config/db");
 const { transcribeVideo, joinTranscriptText } = require("../services/videoSpeechToTextService");
 const { generateAndSaveFeature } = require("../services/contentGenerationService");
+const { generateWebVtt, translateSubtitleSegments, SUBTITLE_LANGUAGES } = require("../services/subtitleService");
 
 const VIDEO_FEATURES = ["summary", "quiz", "flashcards"];
 
@@ -30,11 +31,15 @@ async function uploadVideo(req, res) {
     : "en";
   const title = String(req.body?.title || "").trim() || req.file.originalname;
   let extractedText;
+  let transcriptSegments;
+  let sourceLanguage = null;
   let lessonSaved = false;
 
   try {
-    const segments = await transcribeVideo(req.file.path);
-    extractedText = joinTranscriptText(segments);
+    const transcription = await transcribeVideo(req.file.path, undefined, { includeMetadata: true });
+    transcriptSegments = transcription.segments;
+    sourceLanguage = transcription.sourceLanguage;
+    extractedText = joinTranscriptText(transcriptSegments);
     if (!extractedText) {
       await fs.promises.unlink(req.file.path).catch(() => {});
       return res.status(422).json({
@@ -72,6 +77,20 @@ async function uploadVideo(req, res) {
     );
     const lesson = result.rows[0];
     lessonSaved = true;
+
+    for (const subtitleLanguage of Object.keys(SUBTITLE_LANGUAGES)) {
+      try {
+        const translatedSegments = await translateSubtitleSegments(
+          transcriptSegments,
+          subtitleLanguage,
+          sourceLanguage
+        );
+        const subtitlePath = `${req.file.path}.${subtitleLanguage}.vtt`;
+        await fs.promises.writeFile(subtitlePath, generateWebVtt(translatedSegments), "utf8");
+      } catch (error) {
+        console.error(`[VIDEO SUBTITLES] ${subtitleLanguage} generation failed for lesson ${lesson.id}:`, error);
+      }
+    }
 
     const requestedFeatures = readFormArray(req.body?.features, ["summary"]);
     const features = [...new Set(requestedFeatures)].filter((feature) => VIDEO_FEATURES.includes(feature));
@@ -126,6 +145,43 @@ async function uploadVideo(req, res) {
       errorCode: "VIDEO_LESSON_SAVE_FAILED",
       message: "The video was transcribed but could not be saved as a lesson.",
     });
+  }
+}
+
+async function getLessonSubtitle(req, res) {
+  const { lessonId, language } = req.params;
+  if (!SUBTITLE_LANGUAGES[language]) {
+    return res.status(400).json({ success: false, message: "Unsupported subtitle language" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT l.file_path FROM lessons l
+       WHERE l.id = $1 AND l.archived_at IS NULL
+         AND (
+           l.user_id = $2
+           OR EXISTS (
+             SELECT 1 FROM lesson_assignments la
+             WHERE la.lesson_id = l.id AND la.student_id = $2
+           )
+         )`,
+      [lessonId, req.user.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ success: false, message: "Lesson not found" });
+    }
+
+    const subtitlePath = `${result.rows[0].file_path}.${language}.vtt`;
+    if (!fs.existsSync(subtitlePath)) {
+      return res.status(404).json({ success: false, message: "Subtitle is not available" });
+    }
+
+    const contents = await fs.promises.readFile(subtitlePath, "utf8");
+    return res.set("Content-Type", "text/vtt; charset=utf-8").send(contents);
+  } catch (error) {
+    console.error("Get lesson subtitle error:", error);
+    return res.status(500).json({ success: false, message: "Could not retrieve subtitle" });
   }
 }
 
@@ -220,4 +276,4 @@ async function getSubtitles(req, res) {
   }
 }
 
-module.exports = { uploadVideo, getVideos, getVideoById, deleteVideo, getSubtitles };
+module.exports = { uploadVideo, getLessonSubtitle, getVideos, getVideoById, deleteVideo, getSubtitles };
