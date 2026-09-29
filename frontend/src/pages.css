@@ -1015,3 +1015,23 @@ html[dir=rtl] .hdr-btn.is-solid:hover svg{transform:scaleX(-1) translateX(3px)}
 .student-tool-list>h2{font-size:19px;margin-bottom:18px}.student-tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}.student-tool-grid a{display:flex;flex-direction:column;gap:9px;padding:20px;border:1px solid #dfe8d2;border-radius:16px;background:#fffefa;color:#26351f;text-decoration:none}.student-tool-grid a:hover,.student-tool-grid a:focus-visible{background:#eff6e3;border-color:#a9c77b}.student-tool-grid strong{font-size:16px;overflow-wrap:anywhere}.student-tool-grid small{color:#64705d}.student-tool-grid a>span:last-child{color:#50732e;font-size:12px;font-weight:700;margin-top:auto}.student-tool-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#eaf2d8;color:#45652f}
 
 .test-mode-banner{margin:0 0 18px;padding:12px 16px;border:1px solid #bed295;border-radius:12px;background:#eaf4d6;color:#2e4820;font-size:13px;line-height:1.7}
+
+/* Teacher lesson sharing */
+.share-entry{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.share-entry h2,.share-page-header{display:flex;align-items:center;gap:12px}
+.share-entry h2,.share-page h2{font-size:1.15rem;font-weight:700}
+.share-entry p,.share-page-header p{color:#66715e;margin-top:6px;font-size:.92rem}
+.share-back{display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;color:#526349;font-weight:600}
+.share-page{max-width:850px;padding:clamp(20px,4vw,36px)}
+.share-page-header{margin-bottom:24px;color:#36553c}
+.share-search{display:flex;align-items:center;gap:12px;border:1px solid #cbd8c8;border-radius:14px;padding:0 15px;min-height:54px;background:#fff;color:#608168}
+.share-search:focus-within{outline:2px solid #729f76;outline-offset:2px}
+.share-search input{border:0;outline:0;width:100%;background:transparent;color:#24372b;min-width:0}
+.share-list{max-height:390px;overflow:auto;display:grid;gap:10px;margin:22px 0}
+.share-student{display:flex;align-items:center;gap:14px;border:1px solid #dfe7dc;border-radius:14px;padding:14px;cursor:pointer;transition:background .2s,border-color .2s}
+.share-student:hover,.share-student.selected{border-color:#78a57e;background:#f0f8ee}
+.share-student input{width:18px;height:18px;accent-color:#377447;flex:none}
+.share-avatar{width:38px;height:38px;border-radius:12px;background:#e0efdf;color:#356d40;display:grid;place-items:center;font-weight:700;flex:none}
+.share-student-info{min-width:0;display:grid;gap:2px}.share-student-info strong,.share-student-info small{overflow-wrap:anywhere}.share-student-info small{color:#647367}
+.share-empty{padding:24px;text-align:center;color:#647367}.share-footer{border-top:1px solid #e3e9e0;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:600px){.share-entry .primary-btn,.share-footer .primary-btn{width:100%;justify-content:center}}
