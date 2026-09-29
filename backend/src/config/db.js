@@ -43,6 +43,14 @@ pool
 			message TEXT NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
+		CREATE TABLE IF NOT EXISTS live_classes (
+			id SERIAL PRIMARY KEY,
+			teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			scheduled_at TIMESTAMPTZ NOT NULL,
+			meeting_url TEXT NOT NULL UNIQUE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
 	`))
 	.then(() => pool.query("SELECT NOW()"))
 	.then((result) => {

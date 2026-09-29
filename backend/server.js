@@ -21,6 +21,7 @@ const subscriptionRoutes = require("./src/routes/subscriptionRoutes");
 const videoRoutes = require("./src/routes/videoRoutes");
 const shareRoutes = require("./src/routes/shareRoutes");
 const teacherStudentRoutes = require("./src/routes/teacherStudentRoutes");
+const liveClassRoutes = require("./src/routes/liveClassRoutes");
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use("/api", subscriptionRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api", shareRoutes);
 app.use("/api", teacherStudentRoutes);
+app.use("/api/live-classes", liveClassRoutes);
 
 app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");
