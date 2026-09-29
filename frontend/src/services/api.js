@@ -32,6 +32,7 @@ export const api={
  me:async()=>{const user=api.restoreUser();if(!user)throw Error('No saved session');return {user}},
  logout:async()=>{clearSession()},
  list:async()=>{const rows=(await client.get('/lessons')).data.lessons||[];return Promise.all(rows.map(row=>getLesson(row.id)))},
+ ownLesson:getLesson,
  upload:async(file,onProgress,preferences={})=>{try{const data=new FormData();data.append('pdf',file);data.append('title',preferences.title||file.name);data.append('language',preferences.language||'en');const lesson=(await client.post('/lessons/upload',data,{timeout:600000,onUploadProgress:e=>onProgress(e.total?Math.round(e.loaded/e.total*100):null)})).data.lesson;return normalizeLesson(lesson)}catch(error){const normalized=normalizeApiError(error);const wrappedError=new Error(normalized.message);wrappedError.code=normalized.errorCode;throw wrappedError}},
  generate:async(lessonId,type,lang,preferences={},questionCount)=>{const feature=generatedFeatures.includes(type)?type:'summary';const needs=new Set(preferences.needs||[]);if(!generatedFeatures.includes(type))needs.add(type);await client.post('/generate',{lessonId,features:[feature],profile:{language:lang,level:preferences.level||'beginner',needs:[...needs]},...(feature==='quiz'&&questionCount?{questionCount}:{})},{timeout:600000});const lesson=await getLesson(lessonId);return lesson.outputs[feature]},
  remove:async id=>(await client.delete(`/lessons/${encodeURIComponent(id)}`)).data,

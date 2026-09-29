@@ -13,14 +13,14 @@ import {Brand} from '../components/UI'
 import {Eye,X,Trash2} from 'lucide-react'
 import {useEffect,useLayoutEffect,useState,useRef} from 'react'
 import {gsap} from 'gsap'
-import {useParams} from 'react-router-dom'
+import {useParams,useSearchParams} from 'react-router-dom'
 import {Sparkles,AlignLeft,Brain,BookOpen,ListChecks,Layers,Download,Printer,Volume2,Square,Save,ChevronLeft,ChevronRight,RotateCcw,Check,FileText} from '../components/Icons'
 import {useApp} from '../context/AppContext'
 import {PageHeading,Empty,Busy,ErrorBox} from '../components/UI'
 import {sample,modes,outputText} from '../data/demo'
 import {api,DEMO,download} from '../services/api'
 const icons={adhd:Brain,dyslexia:BookOpen,summary:AlignLeft,quiz:ListChecks,flashcards:Layers}
-export default function Result(){const{id}=useParams(),{tr,lang,user,lessons,updateLesson,isPremium}=useApp(),tabsRef=useRef(null),[pdfOpen,setPdfOpen]=useState(false);const lesson=lessons.find(l=>l.id===id);const[mode,setMode]=useState(()=>lesson?.preferences?.features?.[0]||(DEMO?'adhd':'summary')),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[editing,setEditing]=useState(false),[draft,setDraft]=useState(''),[speaking,setSpeaking]=useState(false),[preview,setPreview]=useState(false),[confirmDelete,setConfirmDelete]=useState(false),[questionCount,setQuestionCount]=useState(10),[generating,setGenerating]=useState(false),[revealTick,setRevealTick]=useState(0)
+export default function Result(){const{id}=useParams(),[params]=useSearchParams(),{tr,lang,user,lessons,updateLesson,isPremium}=useApp(),tabsRef=useRef(null),[pdfOpen,setPdfOpen]=useState(false);const lesson=lessons.find(l=>l.id===id);const[mode,setMode]=useState(()=>modes.includes(params.get('mode'))?params.get('mode'):lesson?.preferences?.features?.[0]||(DEMO?'adhd':'summary')),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[editing,setEditing]=useState(false),[draft,setDraft]=useState(''),[speaking,setSpeaking]=useState(false),[preview,setPreview]=useState(false),[confirmDelete,setConfirmDelete]=useState(false),[questionCount,setQuestionCount]=useState(10),[generating,setGenerating]=useState(false),[revealTick,setRevealTick]=useState(0)
  const revealRef=useRevealOnTick(revealTick)
  useLayoutEffect(()=>{
   const wrap=tabsRef.current,knob=wrap?.querySelector('.tabs-knob'),active=wrap?.querySelector('button.active')

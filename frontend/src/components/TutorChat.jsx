@@ -51,7 +51,7 @@ export default function TutorChat({compact=false,contextLessonId='',storageKey,p
  async function ask(history){
   setLoading(true);setError('')
   try{
-   const text=lesson?.text||(lesson?(await api.studentLesson(lesson.id).catch(()=>null))?.text:'')
+   const text=lesson?.text||(lesson?(await (lesson.shared?api.studentLesson(lesson.id):api.ownLesson(lesson.id)).catch(()=>null))?.text:'')
    const reply=await api.tutor({messages:history,lessonId:lesson?.id,lang,lessonText:text})
    setMessages([...history,{role:'assistant',content:reply}]);onReply?.()
   }catch{setError(tr('The tutor could not answer right now. Please try again.','لم يتمكن المعلّم من الرد الآن. حاول مجدداً.'))}
