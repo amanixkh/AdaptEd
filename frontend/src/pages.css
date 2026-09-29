@@ -1013,3 +1013,5 @@ html[dir=rtl] .hdr-btn.is-solid:hover svg{transform:scaleX(-1) translateX(3px)}
 .tutor-need-lesson{margin:0 16px 10px;padding:10px 14px;border-radius:12px;background:#fbf6e4;border:1px solid #edd9a0;color:#6b5412;font-size:13px}
 
 .student-tool-list>h2{font-size:19px;margin-bottom:18px}.student-tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}.student-tool-grid a{display:flex;flex-direction:column;gap:9px;padding:20px;border:1px solid #dfe8d2;border-radius:16px;background:#fffefa;color:#26351f;text-decoration:none}.student-tool-grid a:hover,.student-tool-grid a:focus-visible{background:#eff6e3;border-color:#a9c77b}.student-tool-grid strong{font-size:16px;overflow-wrap:anywhere}.student-tool-grid small{color:#64705d}.student-tool-grid a>span:last-child{color:#50732e;font-size:12px;font-weight:700;margin-top:auto}.student-tool-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#eaf2d8;color:#45652f}
+
+.test-mode-banner{margin:0 0 18px;padding:12px 16px;border:1px solid #bed295;border-radius:12px;background:#eaf4d6;color:#2e4820;font-size:13px;line-height:1.7}
