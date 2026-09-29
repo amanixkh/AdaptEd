@@ -1,6 +1,7 @@
 const pool = require("../config/db"); 
+const isPlanRestrictionBypassed = require("../utils/isPlanRestrictionBypassed");
 const requireFeature = (featureName) => async (req, res, next) => {
-   if (process.env.BYPASS_PLAN_CHECK === "true") { 
+  if (isPlanRestrictionBypassed()) { 
     return next(); }
 try { const result = await pool.query(`
   SELECT p.name AS plan_name, p.features,

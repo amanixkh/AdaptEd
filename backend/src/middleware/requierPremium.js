@@ -1,5 +1,7 @@
 const pool = require("../config/db");
-const requirePremium = async (req, res, next) => { if (process.env.BYPASS_PLAN_CHECK === "true") { return next(); }
+const isPlanRestrictionBypassed = require("../utils/isPlanRestrictionBypassed");
+const requirePremium = async (req, res, next) => {
+  if (isPlanRestrictionBypassed()) { return next(); }
 try { const result = await pool.query(`
   SELECT s.id, p.id AS plan_id,
    p.name AS plan_name, p.price_monthly,
