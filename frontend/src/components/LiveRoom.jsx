@@ -3,12 +3,10 @@ import {Video,ExternalLink,PhoneOff,Info,Maximize2,Minimize2} from 'lucide-react
 import {gsap} from 'gsap'
 import {useApp} from '../context/AppContext'
 
-/* A live class inside AdaptEd: the Jitsi meeting in a window over the page.
-   meet.jit.si ends embedded calls after a few minutes, so "Open in new tab" is always one click away. */
 export default function LiveRoom({liveClass,onClose}){
  const{tr,lang,user}=useApp(),box=useRef(null),[full,setFull]=useState(false)
  useEffect(()=>{const sync=()=>setFull(document.fullscreenElement===box.current);document.addEventListener('fullscreenchange',sync);return()=>document.removeEventListener('fullscreenchange',sync)},[])
- async function toggleFull(){try{if(document.fullscreenElement)await document.exitFullscreen();else await box.current?.requestFullscreen?.()}catch{/* the browser blocked it */}}
+ async function toggleFull(){try{if(document.fullscreenElement)await document.exitFullscreen();else await box.current?.requestFullscreen?.()}catch{void 0}}
  const hash=[`userInfo.displayName=${encodeURIComponent(JSON.stringify(user?.name||''))}`,`config.defaultLanguage=${encodeURIComponent(JSON.stringify(lang==='en'?'en':'ar'))}`,'config.prejoinPageEnabled=true'].join('&')
  const src=`${liveClass.meetingUrl}#${hash}`
  useEffect(()=>{

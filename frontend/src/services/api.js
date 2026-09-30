@@ -25,7 +25,7 @@ function normalizeLesson(row,generatedContent=[]){const outputs={};for(const ite
 function normalizeApiError(error){const payload=error?.response?.data||{};return {message:payload.message||error?.message||'Request failed',errorCode:payload.errorCode||null}}
 const LIVE_KEY='adapted-live-classes'
 function readLocalLive(){try{return JSON.parse(localStorage.getItem(LIVE_KEY)||'[]')}catch{return []}}
-function writeLocalLive(list){try{localStorage.setItem(LIVE_KEY,JSON.stringify(list))}catch{/* storage unavailable */}}
+function writeLocalLive(list){try{localStorage.setItem(LIVE_KEY,JSON.stringify(list))}catch{}}
 function normalizeLiveClass(row={}){return{id:row.id??row.class_id,title:row.title||row.name||'',scheduledAt:row.scheduled_at||row.scheduledAt||row.start_time||row.starts_at||row.date_time||row.datetime,meetingUrl:row.meeting_url||row.meetingUrl||row.meeting_link||row.url||row.link}}
 function normalizeSharedLesson(row){return {id:String(row.id),title:row.title||row.original_name||'Untitled lesson',fileName:row.original_name||row.file_path?.split(/[\\/]/).pop()||row.title||'lesson.pdf',lang:row.language||'en',createdAt:row.created_at,assignedAt:row.assigned_at,generatedCount:Number(row.generated_count||0)}}
 async function getLesson(id){const response=await client.get(`/lessons/${encodeURIComponent(id)}`);return normalizeLesson(response.data.lesson,response.data.generatedContent)}
@@ -53,10 +53,9 @@ export const api={
  upgradeSubscription:async(planId,billingCycle)=>(await client.post('/subscription/upgrade',{planId,billingCycle})).data,
  lessonFile:async id=>{if(DEMO||String(id).includes('-')){const r=await fetch('/samples/water-cycle.pdf');if(!r.ok)throw Error('missing');return r.blob()}return(await client.get(`/lessons/${encodeURIComponent(id)}/file`,{responseType:'blob',timeout:60000})).data},
  lessonSubtitle:async(id,language)=>(await client.get(`/videos/subtitles/${encodeURIComponent(id)}/${encodeURIComponent(language)}`,{responseType:'blob'})).data,
- /* Live classes (Jitsi). The server returns the meeting link; field names are read flexibly. */
  createLiveClass:async({title,scheduledAt})=>{if(DEMO){await new Promise(r=>setTimeout(r,600));const item={id:crypto.randomUUID(),title,scheduledAt,meetingUrl:`https://meet.jit.si/AdaptEd-${title.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'Class'}-${Math.random().toString(36).slice(2,8)}`};writeLocalLive([...readLocalLive(),item]);return item}const data=(await client.post('/live-classes',{title,scheduled_at:scheduledAt,scheduledAt})).data;const item=normalizeLiveClass(data?.liveClass||data?.live_class||data?.class||data?.data||data);writeLocalLive([...readLocalLive().filter(c=>c.meetingUrl!==item.meetingUrl),item]);return item},
  myLiveClasses:async()=>{const local=readLocalLive();if(DEMO)return local;try{const data=(await client.get('/live-classes/mine')).data;const list=Array.isArray(data)?data:data?.liveClasses||data?.live_classes||data?.classes||[];return list.map(normalizeLiveClass)}catch{return local}},
- cancelLiveClass:async id=>{writeLocalLive(readLocalLive().filter(c=>String(c.id)!==String(id)));if(DEMO)return true;try{await client.delete(`/live-classes/${encodeURIComponent(id)}`)}catch{/* not on the server yet: removed from this device */}return true},
+ cancelLiveClass:async id=>{writeLocalLive(readLocalLive().filter(c=>String(c.id)!==String(id)));if(DEMO)return true;try{await client.delete(`/live-classes/${encodeURIComponent(id)}`)}catch{}return true},
  upcomingLiveClasses:async()=>{if(DEMO)return readLocalLive();const data=(await client.get('/live-classes/upcoming')).data;const list=Array.isArray(data)?data:data?.liveClasses||data?.live_classes||data?.classes||data?.upcoming||data?.data||[];return list.map(normalizeLiveClass)},
  contact:async payload=>{if(DEMO)return{success:true};return(await client.post('/contact',payload)).data},
  studentLessons:async()=>{if(DEMO)return[demoStudentLesson()];const rows=(await client.get('/student/lessons')).data.lessons||[];return rows.map(normalizeSharedLesson)},

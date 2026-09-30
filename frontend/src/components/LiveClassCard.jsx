@@ -6,8 +6,6 @@ import {api} from '../services/api'
 import {demoBlocked} from '../utils/demoGuard'
 import LiveRoom from './LiveRoom'
 
-/* Live classes: the backend creates a Jitsi meeting link; here we only create and show it.
-   Joining opens the meeting in a new browser tab. */
 function when(value,tr,lang){
  const d=new Date(value);if(isNaN(d))return{day:'',time:''}
  const locale=lang==='en'?'en-GB':lang==='ckb'?'ckb-IQ':'ar-IQ'
@@ -32,7 +30,7 @@ export function LiveClassCreate(){
   catch{setError(tr('Could not create the class. Please try again.','تعذّر إنشاء الصف. حاول مجدداً.'))}
   finally{setBusy(false)}
  }
- async function copy(){try{await navigator.clipboard.writeText(created.meetingUrl);setCopied(true);setTimeout(()=>setCopied(false),1800)}catch{/* the link stays visible to copy by hand */}}
+ async function copy(){try{await navigator.clipboard.writeText(created.meetingUrl);setCopied(true);setTimeout(()=>setCopied(false),1800)}catch{void 0}}
  const w=created&&when(created.scheduledAt,tr,lang)
  return <section className="panel live-card" aria-labelledby="live-create-title">
   <div className="section-heading"><h2 id="live-create-title"><span className="live-icon" aria-hidden="true"><Video size={18}/></span>{created?tr('Live class created','تم إنشاء الصف المباشر'):tr('Live Classes','الصفوف المباشرة')}</h2>{created?<span className="pill live-ok"><Check size={13}/>{tr('Ready','جاهز')}</span>:<Link className="live-all" to="/app/live">{tr('All live classes','كل الصفوف المباشرة')} →</Link>}</div>

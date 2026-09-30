@@ -44,8 +44,7 @@ export function AppProvider({children}){
  const plan=user?.plan||serverPlan||planStore[planKey]||'free'
  const isPaidPlan=user?.role==='student'||plan==='pro'||plan==='school'
  const isPremium=TEST||PLAN_RESTRICTIONS_BYPASSED||isPaidPlan
- function setPlan(next){setPlanStore(old=>{const merged={...old,[planKey]:next};try{localStorage.setItem('adapted-plans',JSON.stringify(merged))}catch{/* ignore */}return merged});if(DEMO||user?.demo)return;setServerPlan(next)}
- /* Checkout: record the upgrade in the backend when it is available, otherwise on this device. */
+ function setPlan(next){setPlanStore(old=>{const merged={...old,[planKey]:next};try{localStorage.setItem('adapted-plans',JSON.stringify(merged))}catch{}return merged});if(DEMO||user?.demo)return;setServerPlan(next)}
  async function upgradePlan(next,billing){
   if(DEMO||user?.demo){setPlan(next);return}
   let plans

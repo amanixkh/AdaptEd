@@ -38,8 +38,6 @@ async function getUpcomingLiveClasses(req, res) {
     return res.status(403).json({ success: false, message: "Student access only" });
   }
 
-  // Classes from the student's own teachers (a teacher who added them, or shared a lesson
-  // with them). They stay visible for 2 hours after the start so late students can still join.
   const fromTeacherStudents = `EXISTS (SELECT 1 FROM teacher_students ts
                                    WHERE ts.teacher_id = lc.teacher_id AND ts.student_id = $1)`;
   const fromSharedLessons = `EXISTS (SELECT 1 FROM lesson_assignments la
@@ -56,7 +54,6 @@ async function getUpcomingLiveClasses(req, res) {
     try {
       result = await pool.query(query(`${fromTeacherStudents} OR ${fromSharedLessons}`), [req.user.id]);
     } catch (error) {
-      // Databases without the teacher_students table: use shared lessons only.
       if (error.code !== "42P01") throw error;
       result = await pool.query(query(fromSharedLessons), [req.user.id]);
     }
@@ -68,7 +65,6 @@ async function getUpcomingLiveClasses(req, res) {
   }
 }
 
-// GET /api/live-classes/mine — the teacher's own classes (newest first).
 async function getMyLiveClasses(req, res) {
   if (req.user?.role !== "teacher") {
     return res.status(403).json({ success: false, message: "Teacher access only" });
@@ -88,7 +84,6 @@ async function getMyLiveClasses(req, res) {
   }
 }
 
-// DELETE /api/live-classes/:id — a teacher cancels one of their own classes.
 async function deleteLiveClass(req, res) {
   if (req.user?.role !== "teacher") {
     return res.status(403).json({ success: false, message: "Teacher access only" });

@@ -1,4 +1,3 @@
-// nodemailer is optional until email is configured (npm install nodemailer)
 let nodemailer = null;
 try { nodemailer = require("nodemailer"); } catch { nodemailer = null; }
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,8 +44,6 @@ const sendContactMessage = async (req, res) => {
     const normalizedTopic = TOPICS.includes(topic) ? topic : "general";
 
     if (!nodemailer || !process.env.SMTP_HOST || !process.env.CONTACT_TO_EMAIL) {
-      // SMTP not configured yet — don't fail the request, just log it
-      // so the frontend team can keep testing while backend sets up email.
       console.warn("Contact message received (SMTP not configured):", {
         name,
         email: normalizedEmail,

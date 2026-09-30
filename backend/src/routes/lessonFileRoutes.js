@@ -7,8 +7,6 @@ const authMiddleware = require("../middleware/authMiddleware");
 const router = express.Router();
 const UPLOADS_DIR = path.resolve(__dirname, "../../uploads");
 
-// GET /api/lessons/:id/file — the original file (PDF or video) of a lesson.
-// Allowed for the teacher who owns the lesson, or a student it is shared with.
 router.get("/:id/file", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -24,7 +22,6 @@ router.get("/:id/file", authMiddleware, async (req, res) => {
     const row = result.rows[0];
     if (!row || !row.file_path) return res.status(404).json({ message: "File not found" });
 
-    // Only serve files that live inside the uploads folder.
     const filePath = path.resolve(row.file_path);
     if (!filePath.startsWith(UPLOADS_DIR + path.sep) || !fs.existsSync(filePath)) {
       return res.status(404).json({ message: "File not found" });
