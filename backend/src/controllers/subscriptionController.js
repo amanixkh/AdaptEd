@@ -1,4 +1,34 @@
 const pool = require("../config/db");
+const isPlanRestrictionBypassed = require("../utils/isPlanRestrictionBypassed");
+
+// ---------------------------------------------------------------------------
+// Demo Mode (BYPASS_PLAN_RESTRICTIONS=true)
+//
+// While Demo Mode is on, `getSubscriptionStatus` reports a fully unlocked view
+// of the caller's plan so that no client can mistake them for a restricted
+// Starter user. This is a read-only projection: it never inserts or updates
+// rows in the plans, subscriptions or payments tables, and it does not change
+// the plan name or `isPaid`, so upgrades and real subscription records keep
+// working exactly as before.
+//
+// When the flag is off the original payload is returned untouched.
+// ---------------------------------------------------------------------------
+function applyDemoUnlock(subscription) {
+  if (!isPlanRestrictionBypassed()) return subscription;
+
+  const features = { ...(subscription.features || {}) };
+  for (const key of Object.keys(features)) {
+    if (typeof features[key] === "boolean") features[key] = true;
+  }
+
+  const limits = { ...(subscription.limits || {}) };
+  for (const key of Object.keys(limits)) {
+    // `null` is the existing "unlimited" convention used by the paid plans.
+    if (typeof limits[key] === "number") limits[key] = null;
+  }
+
+  return { ...subscription, features, limits, planRestrictionsBypassed: true };
+}
 
 const getPlans = async (req, res) => {
   try {
@@ -38,7 +68,7 @@ const getSubscriptionStatus = async (req, res) => {
       const starter = starterResult.rows[0];
       return res.status(200).json({
         success: true,
-        subscription: {
+        subscription: applyDemoUnlock({
           planId: starter ? starter.id : null,
           plan: "Starter",
           price: 0,
@@ -48,7 +78,7 @@ const getSubscriptionStatus = async (req, res) => {
           isPaid: false,
           features: starter ? starter.features : {},
           limits: starter ? starter.limits : {},
-        },
+        }),
       });
     }
 
@@ -58,7 +88,7 @@ const getSubscriptionStatus = async (req, res) => {
       : subscription.price_monthly;
     return res.status(200).json({
       success: true,
-      subscription: {
+      subscription: applyDemoUnlock({
         id: subscription.subscription_id,
         planId: subscription.plan_id,
         plan: subscription.plan_name,
@@ -71,7 +101,7 @@ const getSubscriptionStatus = async (req, res) => {
         isPaid: Number(subscription.price_monthly) > 0,
         features: subscription.features,
         limits: subscription.limits,
-      },
+      }),
     });
   } catch (error) {
     console.error("Get subscription status error:", error);
