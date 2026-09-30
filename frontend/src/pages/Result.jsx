@@ -33,7 +33,7 @@ export default function Result(){const{id}=useParams(),[params]=useSearchParams(
  },[mode,lang])
  const names={adhd:tr('ADHD · Focus','ADHD · التركيز'),dyslexia:tr('Dyslexia · Reading','عسر القراءة'),summary:tr('Summary','الملخص'),quiz:tr('Quiz','الأسئلة'),flashcards:tr('Flashcards','بطاقات المراجعة')}
  useEffect(()=>()=>{window.speechSynthesis?.cancel()},[id])
- // eslint-disable-next-line react-hooks/set-state-in-effect
+                                                            
  useEffect(()=>{window.speechSynthesis?.cancel();setSpeaking(false);setEditing(false);setError('');setNotice('');setConfirmDelete(false)},[mode,id])
  if(!lesson)return <Empty title={tr('Lesson not found','الدرس غير موجود')} text={tr('Return to your library and choose a lesson.','ارجع إلى المكتبة واختر درساً.')} to={libraryPath(user)} label={tr('Open library','فتح المكتبة')}/>
  const content=lesson.outputs[mode],text=outputText(content)

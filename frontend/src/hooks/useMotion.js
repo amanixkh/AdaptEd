@@ -3,7 +3,7 @@ import {gsap} from 'gsap'
 
 const calm=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-/* After answers are checked: right answers glow, wrong picks shake, the score pops. */
+                                                                                       
 export function useQuizFeedback(checked,perfect){
  const ref=useRef(null)
  useEffect(()=>{
@@ -28,7 +28,7 @@ export function useQuizFeedback(checked,perfect){
  return ref
 }
 
-/* Reveal freshly generated content with a soft sweep. Runs only when `tick` changes. */
+                                                                                        
 export function useRevealOnTick(tick){
  const ref=useRef(null)
  useEffect(()=>{

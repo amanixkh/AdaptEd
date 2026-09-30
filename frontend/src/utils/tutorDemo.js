@@ -1,5 +1,5 @@
-/* Offline replies for the AI Tutor in demo mode, built from the selected lesson's text.
-   Type "#error" in a message to preview the error state. */
+                                                                                        
+                                                            
 const T={
  en:{hi:'Great question! Here is a simple way to think about it:',ex:'For example:',check:'Can you tell me in your own words what this means?',quiz:"Let's check what you know. Take your time:",quizQ:'True or false:',sum:'Here are the main ideas, one step at a time:',none:'I can help with any lesson. Pick a lesson above for answers based on it, or ask me anything you are studying.',tip:'Tip: short study sessions with small breaks help you remember more.'},
  ar:{hi:'سؤال رائع! إليك طريقة بسيطة للتفكير فيه:',ex:'مثال:',check:'هل تستطيع أن تشرح لي ذلك بكلماتك؟',quiz:'لنختبر ما تعرفه. خذ وقتك:',quizQ:'صح أم خطأ:',sum:'هذه الأفكار الأساسية، خطوة بخطوة:',none:'أستطيع مساعدتك في أي درس. اختر درساً من الأعلى لإجابات مبنية عليه، أو اسألني عن أي شيء تدرسه.',tip:'نصيحة: جلسات دراسة قصيرة مع استراحات صغيرة تساعدك على التذكّر أكثر.'},

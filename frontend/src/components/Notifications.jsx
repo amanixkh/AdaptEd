@@ -1,5 +1,5 @@
-/* Resource effects reset loading while synchronizing with remote data. */
-/* eslint-disable react-hooks/set-state-in-effect */
+                                                                          
+                                                    
 import {useEffect,useRef,useState} from 'react'
 import {Bell,CheckCheck,X,ArrowUpRight,BookOpen,TrendingUp,Flame,Clock} from 'lucide-react'
 import {Link} from 'react-router-dom'
@@ -24,7 +24,7 @@ export default function Notifications(){
   inactive_warning:[tr('Time for a quick review','وقت مراجعة سريعة'),tr('You have not studied for 3 days. A few minutes today helps.','لم تدرس منذ 3 أيام. دقائق قليلة اليوم تفرق.')]
  }
 
- // Is the notifications API available? If not (branch not merged yet), use local updates.
+                                                                                          
  useEffect(()=>{
   if(DEMO)return
   let active=true

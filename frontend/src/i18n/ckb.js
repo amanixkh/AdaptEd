@@ -1,4 +1,4 @@
-// Sorani interface translation. Have a native-speaking teammate review terminology before presenting.
+                                                                                                      
 export const ckb=Object.fromEntries(`
 Dashboard|داشبۆرد
 A calmer way to prepare lessons that meet your learners where they are.|ڕێگایەکی ئاسانتر بۆ ئامادەکردنی وانە بەپێی پێداویستییەکانی فێرخوازان.

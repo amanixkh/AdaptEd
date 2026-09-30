@@ -3,7 +3,7 @@ import {SendHorizontal,Sparkles} from 'lucide-react'
 import {useApp} from '../context/AppContext'
 import {askTutor} from '../utils/tutorBus'
 
-/* A quick "ask the tutor" box for the overview pages; the answer opens in the floating tutor. */
+                                                                                                 
 export default function QuickAsk(){
  const{tr,user}=useApp(),[text,setText]=useState(''),isStudent=user?.role==='student'
  const chips=isStudent

@@ -16,7 +16,7 @@ function demoStudentLesson(){
 }
 const DEMO_ATTEMPTS_KEY='adapted-demo-attempts'
 let demoAttempts=readJson(DEMO_ATTEMPTS_KEY)||[{id:'demo-attempt-1',score:2,total:3,percentage:67,passed:false,createdAt:'2026-09-22T10:00:00.000Z'}]
-function saveDemoAttempts(){try{localStorage.setItem(DEMO_ATTEMPTS_KEY,JSON.stringify(demoAttempts))}catch{/* ignore */}}
+function saveDemoAttempts(){try{localStorage.setItem(DEMO_ATTEMPTS_KEY,JSON.stringify(demoAttempts))}catch{            }}
 function readJson(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
 function storeSession(result){if(result?.token)localStorage.setItem(TOKEN_KEY,result.token);if(result?.user)localStorage.setItem(USER_KEY,JSON.stringify(result.user));return result}
 function clearSession(){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY)}

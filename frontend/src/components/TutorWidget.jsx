@@ -8,8 +8,8 @@ import Logo from './Logo'
 
 const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches&&!document.documentElement.classList.contains('force-motion')
 
-/* A floating AI tutor that travels with you through the workspace. The conversation stays
-   while you move between pages, and it follows the lesson you are looking at. */
+                                                                                          
+                                                                                 
 export default function TutorWidget(){
  const{tr,user}=useApp(),{pathname}=useLocation(),isStudent=user?.role==='student'
  const[open,setOpen]=useState(false),[pending,setPending]=useState(null),[unread,setUnread]=useState(false),[hint,setHint]=useState(false)
@@ -32,9 +32,9 @@ export default function TutorWidget(){
   return()=>tl.kill()
  },[])
  useEffect(()=>{
-  let seen=false;try{seen=sessionStorage.getItem('adapted-tutor-hint')==='1'}catch{/* ignore */}
+  let seen=false;try{seen=sessionStorage.getItem('adapted-tutor-hint')==='1'}catch{            }
   if(seen)return
-  const show=setTimeout(()=>{if(!openRef.current)setHint(true);try{sessionStorage.setItem('adapted-tutor-hint','1')}catch{/* ignore */}},2500),hide=setTimeout(()=>setHint(false),9000)
+  const show=setTimeout(()=>{if(!openRef.current)setHint(true);try{sessionStorage.setItem('adapted-tutor-hint','1')}catch{            }},2500),hide=setTimeout(()=>setHint(false),9000)
   return()=>{clearTimeout(show);clearTimeout(hide)}
  },[])
 

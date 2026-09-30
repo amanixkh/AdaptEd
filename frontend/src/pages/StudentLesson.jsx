@@ -1,6 +1,6 @@
 import {Volume2,Square,ArrowLeft} from 'lucide-react'
-/* Resource effects reset loading while synchronizing with remote data. */
-/* eslint-disable react-hooks/set-state-in-effect */
+                                                                          
+                                                    
 import {useEffect,useState,useRef} from 'react'
 import {Link,useParams} from 'react-router-dom'
 import {AlignLeft,ListChecks,Layers,BookOpen,Check,ChevronLeft,ChevronRight,RotateCcw} from '../components/Icons'
@@ -23,7 +23,7 @@ export default function StudentLesson(){const{id}=useParams(),{tr}=useApp(),[les
  useEffect(()=>{let active=true;setLoading(true);setError('')
   Promise.all([api.studentLesson(id),api.quizAttempts(id).catch(()=>[])]).then(([lessonData,attemptRows])=>{if(!active)return;setLesson(lessonData);setMode(CONTENT_TYPES.find(type=>lessonData.outputs[type])||'summary');setAttempts(attemptRows)}).catch(()=>{if(active)setError(tr('Could not load this lesson.','تعذّر تحميل هذا الدرس.'))}).finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
- // eslint-disable-next-line react-hooks/exhaustive-deps
+                                                        
  },[id,retry])
  useEffect(()=>{window.speechSynthesis?.cancel();setSpeaking(false);return()=>window.speechSynthesis?.cancel()},[id,mode])
  function speak(){if(speaking){window.speechSynthesis?.cancel();setSpeaking(false);return}const engine=window.speechSynthesis;if(!engine){setError(tr('Speech is unavailable in this browser.','القراءة الصوتية غير متاحة في هذا المتصفح.'));return}const voice=engine.getVoices().find(v=>v.lang.startsWith(lesson.lang));if(!voice){setError(tr('No voice for this lesson language is installed.','لا يوجد صوت مثبت بلغة هذا الدرس.'));return}const speech=new SpeechSynthesisUtterance(outputText(lesson.outputs[mode]));speech.voice=voice;speech.rate=.9;speech.onend=()=>setSpeaking(false);speech.onerror=()=>setSpeaking(false);setSpeaking(true);engine.speak(speech)}

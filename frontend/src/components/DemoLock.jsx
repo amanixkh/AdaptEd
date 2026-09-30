@@ -4,7 +4,7 @@ import {Lock,LogIn,UserPlus,Compass} from 'lucide-react'
 import {gsap} from 'gsap'
 import {useApp} from '../context/AppContext'
 
-/* Shown when a demo visitor tries to save something. */
+                                                        
 export default function DemoLock(){
  const{tr,user}=useApp(),navigate=useNavigate(),[open,setOpen]=useState(false),box=useRef(null),first=useRef(null)
  useEffect(()=>{const show=()=>setOpen(true);window.addEventListener('adapted:demo-lock',show);return()=>window.removeEventListener('adapted:demo-lock',show)},[])
