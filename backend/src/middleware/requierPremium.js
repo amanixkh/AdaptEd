@@ -1,5 +1,7 @@
 const pool = require("../config/db");
 const isPlanRestrictionBypassed = require("../utils/isPlanRestrictionBypassed");
+// Plan gate. Demo Mode (BYPASS_PLAN_RESTRICTIONS=true in backend/.env) lets every
+// authenticated user through; set the flag to "false" for the original behaviour.
 const requirePremium = async (req, res, next) => {
   if (isPlanRestrictionBypassed()) { return next(); }
 try { const result = await pool.query(`

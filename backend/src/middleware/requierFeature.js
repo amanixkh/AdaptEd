@@ -1,5 +1,8 @@
 const pool = require("../config/db"); 
 const isPlanRestrictionBypassed = require("../utils/isPlanRestrictionBypassed");
+// Per-feature plan gate. Demo Mode (BYPASS_PLAN_RESTRICTIONS=true in backend/.env)
+// lets every authenticated user through; set the flag to "false" for the
+// original behaviour.
 const requireFeature = (featureName) => async (req, res, next) => {
   if (isPlanRestrictionBypassed()) { 
     return next(); }
