@@ -1,7 +1,7 @@
 import landingCkb from '../i18n/landing-ckb'
 import {Brand,Language} from '../components/UI'
 import {FileText,Focus,BookOpen,Headphones,ArrowRight,Play,Layers} from '../components/Icons'
-import {useState,useEffect} from 'react'
+import {useState,useEffect,useRef} from 'react'
 import {gsap} from 'gsap'
 import {showSplash,forceMotion} from '../utils/splash'
 import HandNote from '../components/HandNote'
@@ -19,6 +19,7 @@ const dictionaries={
 export default function Landing(){
  const {lang,user,tr}=useApp(); const navigate=useNavigate();
  const [notice,setNotice]=useState(false)
+ const cardRef=useRef(null)
  const paused=false
  const t=lang==='ckb'?landingCkb:dictionaries[lang],rtl=lang!=='en'
  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';document.title=rtl?'AdaptEd | درس واحد لكل متعلّم':'AdaptEd | One lesson. Every learner.';try{localStorage.setItem('adapted-language',lang)}catch{                          }},[lang,rtl])
@@ -45,10 +46,25 @@ export default function Landing(){
   else write()
   return()=>{if(waiting)window.removeEventListener('adapted:splash',onSplash);ctx?.revert()}
  },[lang])
+ useEffect(()=>{
+  const card=cardRef.current,inner=card?.querySelector('.lesson-brand-inner')
+  if(!inner)return
+  const media=gsap.matchMedia()
+  media.add('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)',()=>{
+   const turnX=gsap.quickTo(inner,'rotationX',{duration:.65,ease:'power3.out'})
+   const turnY=gsap.quickTo(inner,'rotationY',{duration:.65,ease:'power3.out'})
+   const move=event=>{const box=card.getBoundingClientRect();turnX((.5-(event.clientY-box.top)/box.height)*7);turnY(((event.clientX-box.left)/box.width-.5)*9)}
+   const reset=()=>{turnX(0);turnY(0)}
+   card.addEventListener('pointermove',move)
+   card.addEventListener('pointerleave',reset)
+   return()=>{card.removeEventListener('pointermove',move);card.removeEventListener('pointerleave',reset)}
+  })
+  return()=>media.revert()
+ },[])
  const brand=<Brand/>
  return <div className={`site ${paused?'motion-off':''}`} id="home" dir={rtl?'rtl':'ltr'}><a className="skip" href="#main">{t.skip}</a><header className="landing-header">{brand}<div className="header-actions"><Language/><button className="hdr-btn hdr-contact" onClick={()=>navigate('/contact')}><MailIcon size={16} aria-hidden="true"/><span>{t.contact}</span></button><button className="hdr-btn" onClick={()=>navigate('/login')}><LogInIcon size={16} aria-hidden="true"/><span>{t.login}</span></button><button className="hdr-btn is-solid" onClick={()=>navigate(user?uploadPath(user):'/register')}><span>{user?tr('New lesson','درس جديد'):t.start}</span><ArrowRight size={16} aria-hidden="true"/></button></div></header>
  <main id="main"><section className="hero"><div className="hero-copy"><p className="eyebrow">{t.eyebrow}</p><h1>{t.head[0]}<br/><span>{t.head[1]}</span></h1><p className="description">{t.description}</p><div className="hero-actions"><button className="button" onClick={()=>navigate(user?uploadPath(user):'/register')}>{t.cta}<ArrowRight size={18}/></button><a href="#how" className="watch"><i aria-hidden="true"><Play size={13}/></i>{t.watch}</a></div><p className="note">{t.note}</p><div className="hero-proof"><span><BookOpen size={17}/>{tr('Teacher-led','بإشراف المعلم')}</span><span><Focus size={17}/>{tr('Built for different minds','لطرق تعلّم مختلفة')}</span></div></div>
- <div className="visual" id="platform"><RibbonScene/><div className="file-chip"><FileText size={26}/><div><strong>{tr('Your lesson. Your possibilities.','درسك. وإمكاناتك.')}</strong><small>{tr('Made for every learner','لكل متعلّم')}</small></div></div><p className={`hand-note ${writeNotes?'will-write':''}`}><span className="sr-only">{t.caption[0]} {t.caption[1]}</span><HandNote key={lang} lang={lang} name="caption"/></p><p className={`hand-note hand-note-alt ${writeNotes?'will-write':''}`}><span className="sr-only">{t.caption2[0]} {t.caption2[1]}</span><HandNote key={lang} lang={lang} name="caption2"/></p><article className="lesson lesson-brand"><div className="window-top"><span className="dots" aria-hidden="true"><i/><i/><i/></span><span>AdaptEd / {t.studio}</span></div><div className="lesson-brand-inner"><div className="lesson-brand-orbit" aria-hidden="true"><i/><i/><span>✳</span><div className="lesson-brand-mark"><Logo/></div></div><p className="lesson-brand-label">ADAPTED</p><h2>{tr('One lesson.','درس واحد.')}<br/><span>{tr('More possibilities.','إمكانات أكثر.')}</span></h2><p className="lesson-brand-description">{tr('A clearer way to read, focus and learn.','طريقة أوضح للقراءة والتركيز والتعلّم.')}</p><div className="lesson-brand-tools"><span><FileText size={15}/>{tr('Summary','ملخّص')}</span><span><BookOpen size={15}/>{tr('Quiz','اختبار')}</span><span><Layers size={15}/>{tr('Flashcards','بطاقات')}</span></div></div></article><div className="badges">{t.badges.map(([title,sub],i)=><div className="badge" key={i}><span aria-hidden="true">{i===0?<Focus size={22}/>:i===1?<BookOpen size={22}/>:<Headphones size={22}/>}</span><div><b>{title}</b><small>{sub}</small></div></div>)}</div></div></section>
+ <div className="visual" id="platform"><RibbonScene/><div className="file-chip"><FileText size={26}/><div><strong>{tr('Your lesson. Your possibilities.','درسك. وإمكاناتك.')}</strong><small>{tr('Made for every learner','لكل متعلّم')}</small></div></div><p className={`hand-note ${writeNotes?'will-write':''}`}><span className="sr-only">{t.caption[0]} {t.caption[1]}</span><HandNote key={lang} lang={lang} name="caption"/></p><p className={`hand-note hand-note-alt ${writeNotes?'will-write':''}`}><span className="sr-only">{t.caption2[0]} {t.caption2[1]}</span><HandNote key={lang} lang={lang} name="caption2"/></p><article className="lesson lesson-brand" ref={cardRef}><div className="window-top"><span className="dots" aria-hidden="true"><i/><i/><i/></span><span>AdaptEd / {t.studio}</span></div><div className="lesson-brand-inner"><div className="lesson-brand-orbit" aria-hidden="true"><i/><i/><span>✳</span><div className="lesson-brand-mark"><Logo/></div></div><p className="lesson-brand-label">ADAPTED</p><h2>{tr('One lesson.','درس واحد.')}<br/><span>{tr('More possibilities.','إمكانات أكثر.')}</span></h2><p className="lesson-brand-description">{tr('A clearer way to read, focus and learn.','طريقة أوضح للقراءة والتركيز والتعلّم.')}</p><div className="lesson-brand-tools"><span><FileText size={15}/>{tr('Summary','ملخّص')}</span><span><BookOpen size={15}/>{tr('Quiz','اختبار')}</span><span><Layers size={15}/>{tr('Flashcards','بطاقات')}</span></div></div></article><div className="badges">{t.badges.map(([title,sub],i)=><div className="badge" key={i}><span aria-hidden="true">{i===0?<Focus size={22}/>:i===1?<BookOpen size={22}/>:<Headphones size={22}/>}</span><div><b>{title}</b><small>{sub}</small></div></div>)}</div></div></section>
  <section id="how" className="workflow"><p className="eyebrow">{t.processLabel}</p><h2>{t.processTitle}</h2><div className="workflow-grid">{t.workflow.map(([title,text],i)=><article key={i}><h3><span>{rtl?['١','٢','٣'][i]:['01','02','03'][i]}</span>{title}</h3><p>{text}</p><div className="mini">{i===0?<><span className="pdf-icon"><FileText size={27}/></span><div><b>{t.upload}</b><small>{t.pdf}</small><button className="button tiny" onClick={()=>navigate(user?uploadPath(user):'/register')}>{t.start}</button></div></>:i===1?<div className="option-grid">{t.options.map((o,j)=><span key={j}>{j===0?<Focus size={18}/>:j===1?<BookOpen size={18}/>:j===2?<FileText size={18}/>:<Layers size={18}/>} {o}</span>)}</div>:<div className="comparison"><div>{t.before}<i/><i/></div><span aria-hidden="true">{rtl?'←':'→'}</span><div>{t.after}<i/><i/></div></div>}</div></article>)}</div></section>
  </main><footer>{brand}<p>{t.footer}</p><div className="footer-support-links"><Link className="footer-contact" to="/contact">{tr('Contact us','تواصل معنا')}</Link><Link className="footer-contact" to="/support">{tr('Support & Team','الدعم والفريق')}</Link></div></footer>{notice&&<div className="notice" role="status"><p>{t.notice}</p><button aria-label={t.close} onClick={()=>setNotice(false)}>✕</button></div>}</div>
 }

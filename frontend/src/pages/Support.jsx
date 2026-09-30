@@ -5,7 +5,7 @@ import {useApp} from '../context/AppContext'
 import PublicShell from '../components/PublicShell'
 
 const EMAIL='adaptedteam.3@gmail.com'
-const TEAM=[{name:'Lubna Mohammed Eyad',color:'sky',motif:'arch',hair:'waves'},{name:'Zahraa Qasim',color:'sage',motif:'orbit',hair:'bob'},{name:'Amani Khalid',color:'pink',motif:'fold',hair:'ponytail'}]
+const TEAM=[{name:'Lubna Mohammed',color:'sky',motif:'arch',hair:'waves'},{name:'Zahraa Qasim',color:'sage',motif:'orbit',hair:'bob'},{name:'Amani Khalid',color:'pink',motif:'fold',hair:'ponytail'}]
 function TeamAvatar({hair}){
  return <svg className="sp-avatar" viewBox="0 0 160 180" fill="none" aria-hidden="true" focusable="false">
   <circle cx="80" cy="85" r="66" fill="#fff" fillOpacity=".3"/>
@@ -20,7 +20,7 @@ function TeamAvatar({hair}){
   {hair==='waves'&&<><path d="M47 70c-5-25 12-36 33-36 20 0 36 12 33 37-17-3-28-13-32-23-8 13-19 19-34 22Z" fill="#614b42"/><path d="m50 65-1 35m62-35 1 35" stroke="#614b42" strokeWidth="7" strokeLinecap="round"/><path d="m48 56 7-4" stroke="#96c8e5" strokeWidth="5" strokeLinecap="round"/></>}
   {hair==='bob'&&<><path d="M48 66c-1-22 12-33 32-33s34 11 33 34c-16-2-27-9-32-18-8 11-20 16-33 17Z" fill="#493e39"/><path d="M50 44c17-13 41-13 59 1" stroke="#b8d59e" strokeWidth="5" strokeLinecap="round"/></>}
   {hair==='ponytail'&&<><path d="M47 68c-3-24 12-35 33-35s36 13 34 36c-17-4-28-15-34-22-5 11-18 18-33 21Z" fill="#685044"/><path d="m113 47 12-9 1 13-11-1-9 8-3-12Z" fill="#e8a6bf"/><circle cx="114" cy="48" r="3" fill="#f7cfde"/></>}
-  <circle cx="67" cy="81" r="2.5" fill="#51423b"/><circle cx="94" cy="81" r="2.5" fill="#51423b"/>
+  <path d="m65 80-3-3m5 2-1-4m30 5 3-3m-5 2 1-4" stroke="#51423b" strokeWidth="1.8" strokeLinecap="round"/><circle cx="67" cy="81" r="2.7" fill="#51423b"/><circle cx="94" cy="81" r="2.7" fill="#51423b"/><circle cx="67.8" cy="80.2" r=".8" fill="#fff"/><circle cx="94.8" cy="80.2" r=".8" fill="#fff"/>
   <ellipse cx="60" cy="89" rx="6" ry="3.5" fill="#efb6af" fillOpacity=".65"/><ellipse cx="101" cy="89" rx="6" ry="3.5" fill="#efb6af" fillOpacity=".65"/>
   <path d="M76 93q4 5 8 0" stroke="#b87970" strokeWidth="2" strokeLinecap="round"/>
  </svg>
