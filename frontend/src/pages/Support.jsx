@@ -1,4 +1,4 @@
-import {useEffect,useId,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {ArrowUpRight,Check,Copy,Mail,Plus,Sparkles} from 'lucide-react'
 import {useApp} from '../context/AppContext'
@@ -7,25 +7,22 @@ import PublicShell from '../components/PublicShell'
 const EMAIL='adaptedteam.3@gmail.com'
 const TEAM=[{name:'Lubna Mohammed Eyad',color:'sky',motif:'arch',hair:'waves'},{name:'Zahraa Qasim',color:'sage',motif:'orbit',hair:'bob'},{name:'Amani Khalid',color:'pink',motif:'fold',hair:'ponytail'}]
 function TeamAvatar({hair}){
- const id=useId()
  return <svg className="sp-avatar" viewBox="0 0 160 180" fill="none" aria-hidden="true" focusable="false">
-  <defs><linearGradient id={`${id}-top`} x1="45" y1="110" x2="115" y2="160" gradientUnits="userSpaceOnUse"><stop className="sp-avatar-light"/><stop offset="1" className="sp-avatar-deep"/></linearGradient><linearGradient id={`${id}-face`} x1="65" y1="50" x2="100" y2="102" gradientUnits="userSpaceOnUse"><stop stopColor="#fff0e3"/><stop offset="1" stopColor="#edc6b0"/></linearGradient></defs>
-  <circle cx="80" cy="87" r="69" fill="#fff" fillOpacity=".27"/><circle cx="80" cy="87" r="68.5" stroke="#fff" strokeOpacity=".6"/>
-  {hair==='waves'&&<path d="M43 72c-5-38 17-48 37-48 30 0 44 21 36 49-2 13 9 16 4 29-3 9 7 17-1 26-11 14-68 15-80-1-7-10 3-18 0-27-5-12 5-17 4-28Z" fill="#5e493f"/>}
-  {hair==='bob'&&<path d="M43 66c0-28 16-42 37-42 26 0 38 17 38 43l5 37c-9 19-77 19-86 0l6-38Z" fill="#493e37"/>}
-  {hair==='ponytail'&&<><path d="M108 44c24-17 37 4 28 25-10 21-1 31-8 43-19-3-26-26-18-43Z" fill="#67483c"/><path d="M44 70c-7-30 10-46 35-47 28-1 43 18 38 48l-10 24H52L44 70Z" fill="#67483c"/></>}
-  <ellipse cx="80" cy="161" rx="44" ry="6" className="sp-avatar-shadow"/>
-  <path d="M32 148c0-26 20-40 48-40s48 14 48 40v5c0 8-22 13-48 13s-48-5-48-13v-5Z" fill={`url(#${id}-top)`}/>
-  <path d="M68 98v16c0 11 24 11 24 0V98" fill="#ecc4ac"/><path d="m62 112 18 13 18-13" stroke="#fff" strokeOpacity=".65" strokeWidth="4" strokeLinecap="round"/>
-  <ellipse cx="50" cy="78" rx="6" ry="9" fill="#ecc4ac"/><ellipse cx="110" cy="78" rx="6" ry="9" fill="#ecc4ac"/>
-  <path d="M51 61c0-23 58-24 58 0v21c0 20-14 33-29 33S51 102 51 82V61Z" fill={`url(#${id}-face)`}/>
-  {hair==='waves'&&<><path d="M49 74c-10-28 6-42 31-42 22 0 37 14 31 37-18-2-25-18-26-24-6 16-20 22-36 29Z" fill="#5e493f"/><path d="M83 33c-17 1-28 10-29 24" stroke="#9a7861" strokeOpacity=".6" strokeWidth="3" strokeLinecap="round"/><path d="M106 73c7 28-1 35 3 55" stroke="#8c6955" strokeOpacity=".5" strokeWidth="4" strokeLinecap="round"/></>}
-  {hair==='bob'&&<><path d="M49 66c-2-23 10-34 31-34 23 0 36 14 31 36-17 0-29-12-31-19-5 12-17 19-31 17Z" fill="#493e37"/><path d="M49 48c18-18 45-17 63 0" stroke="#b7d69d" strokeWidth="6" strokeLinecap="round"/><path d="M46 70v29m67-29v29" stroke="#493e37" strokeWidth="7" strokeLinecap="round"/></>}
-  {hair==='ponytail'&&<><path d="M48 68c-4-25 10-38 31-38 23 0 36 14 34 38-19-7-31-17-36-25-5 14-15 21-29 25Z" fill="#67483c"/><path d="m115 43 13-13 5 18-16 2-9 11-7-15Z" fill="#e6a4bf"/><circle cx="117" cy="46" r="5" fill="#f5cddd"/></>}
-  <path d="M62 77c3-3 6-3 9 0m18 0c3-3 6-3 9 0" stroke="#51413a" strokeWidth="2.2" strokeLinecap="round"/>
-  <ellipse cx="60" cy="87" rx="6" ry="3" fill="#e9a89e" fillOpacity=".55"/><ellipse cx="100" cy="87" rx="6" ry="3" fill="#e9a89e" fillOpacity=".55"/>
-  <path d="M73 93c4 5 10 5 14 0" stroke="#ba7b6b" strokeWidth="2" strokeLinecap="round"/>
-  <path d="M42 140c6-12 14-17 22-18" stroke="#fff" strokeOpacity=".5" strokeWidth="3" strokeLinecap="round"/>
+  <circle cx="80" cy="85" r="66" fill="#fff" fillOpacity=".3"/>
+  {hair==='waves'&&<path d="M44 67c0-26 14-41 36-41s37 15 37 41v43c0 13-12 17-18 12H60c-12 4-19-5-17-15Z" fill="#614b42"/>}
+  {hair==='bob'&&<path d="M42 65c0-26 15-40 38-40 24 0 38 17 38 40l4 40c-8 16-76 16-84 0Z" fill="#493e39"/>}
+  {hair==='ponytail'&&<><ellipse cx="122" cy="78" rx="15" ry="32" transform="rotate(-16 122 78)" fill="#685044"/><path d="M44 68c-2-28 13-43 36-43s39 15 37 43l-7 23H49Z" fill="#685044"/></>}
+  <path d="M37 149c0-24 17-36 43-36s43 12 43 36v6c-22 9-64 9-86 0Z" className="sp-avatar-shirt"/>
+  <path d="M70 105v11c0 11 20 11 20 0v-11" fill="#efc8ad"/>
+  <path d="m65 117 15 10 15-10" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+  <ellipse cx="49" cy="79" rx="5" ry="7" fill="#f6d5bc"/><ellipse cx="111" cy="79" rx="5" ry="7" fill="#f6d5bc"/>
+  <path d="M50 65c0-18 60-18 60 0v18c0 19-13 32-30 32S50 102 50 83Z" fill="#f9ddc6"/>
+  {hair==='waves'&&<><path d="M47 70c-5-25 12-36 33-36 20 0 36 12 33 37-17-3-28-13-32-23-8 13-19 19-34 22Z" fill="#614b42"/><path d="m50 65-1 35m62-35 1 35" stroke="#614b42" strokeWidth="7" strokeLinecap="round"/><path d="m48 56 7-4" stroke="#96c8e5" strokeWidth="5" strokeLinecap="round"/></>}
+  {hair==='bob'&&<><path d="M48 66c-1-22 12-33 32-33s34 11 33 34c-16-2-27-9-32-18-8 11-20 16-33 17Z" fill="#493e39"/><path d="M50 44c17-13 41-13 59 1" stroke="#b8d59e" strokeWidth="5" strokeLinecap="round"/></>}
+  {hair==='ponytail'&&<><path d="M47 68c-3-24 12-35 33-35s36 13 34 36c-17-4-28-15-34-22-5 11-18 18-33 21Z" fill="#685044"/><path d="m113 47 12-9 1 13-11-1-9 8-3-12Z" fill="#e8a6bf"/><circle cx="114" cy="48" r="3" fill="#f7cfde"/></>}
+  <circle cx="67" cy="81" r="2.5" fill="#51423b"/><circle cx="94" cy="81" r="2.5" fill="#51423b"/>
+  <ellipse cx="60" cy="89" rx="6" ry="3.5" fill="#efb6af" fillOpacity=".65"/><ellipse cx="101" cy="89" rx="6" ry="3.5" fill="#efb6af" fillOpacity=".65"/>
+  <path d="M76 93q4 5 8 0" stroke="#b87970" strokeWidth="2" strokeLinecap="round"/>
  </svg>
 }
 export default function Support(){
