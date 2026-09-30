@@ -8,11 +8,13 @@ import Logo from './Logo'
 
 const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches&&!document.documentElement.classList.contains('force-motion')
 
+/* A floating AI tutor that travels with you through the workspace. The conversation stays
+   while you move between pages, and it follows the lesson you are looking at. */
 export default function TutorWidget(){
  const{tr,user}=useApp(),{pathname}=useLocation(),isStudent=user?.role==='student'
  const[open,setOpen]=useState(false),[pending,setPending]=useState(null),[unread,setUnread]=useState(false),[hint,setHint]=useState(false)
  const panel=useRef(null),fab=useRef(null),openRef=useRef(false)
- const lessonMatch=pathname.match(/\/app\/(?:result|student\/lesson)\/([^/]+)/)
+ const lessonMatch=pathname.match(/\/app\/(?:result|student\/lesson|student\/result)\/([^/]+)/)
  const onTutorPage=/\/tutor\/?$/.test(pathname)
 
  const openPanel=()=>{setOpen(true);setUnread(false);setHint(false)}
@@ -39,7 +41,7 @@ export default function TutorWidget(){
  if(onTutorPage)return null
  return <div className="tw" data-open={open}>
   <div ref={panel} className="tw-panel" role="dialog" aria-label={tr('AI Tutor','المعلّم الذكي')} hidden>
-   <TutorChat compact contextLessonId={lessonMatch?.[1]||''} storageKey="adapted-tutor-widget" pendingAsk={pending} onClose={()=>setOpen(false)} onReply={()=>{if(!openRef.current)setUnread(true)}} fullPageLink={isStudent?'/app/student/tutor':'/app/tutor'}/>
+   <TutorChat key={user?.id||user?.email||user?.role} compact contextLessonId={lessonMatch?.[1]||''} pendingAsk={pending} onClose={()=>setOpen(false)} onReply={()=>{if(!openRef.current)setUnread(true)}} fullPageLink={isStudent?'/app/student/tutor':'/app/tutor'}/>
   </div>
   {hint&&!open&&<button type="button" className="tw-hint" onClick={openPanel}>{tr('Stuck on something? Ask me.','محتار بشي؟ اسألني.')}</button>}
   <button ref={fab} type="button" className="tw-fab" aria-expanded={open} aria-label={open?tr('Close AI tutor','إغلاق المعلّم الذكي'):tr('Open AI tutor','فتح المعلّم الذكي')} onClick={()=>open?setOpen(false):openPanel()}>

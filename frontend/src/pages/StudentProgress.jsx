@@ -1,4 +1,5 @@
-
+/* Resource effects reset loading while synchronizing with remote data. */
+/* eslint-disable react-hooks/set-state-in-effect */
 import {useEffect,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Trophy,Target,BookOpen,ArrowUpRight,RotateCcw,Sparkles} from 'lucide-react'
@@ -42,11 +43,11 @@ export default function StudentProgress(){
    gsap.utils.toArray('.pg-hero .cx-aurora i').forEach((el,i)=>gsap.to(el,{x:()=>gsap.utils.random(-50,50),y:()=>gsap.utils.random(-40,40),duration:gsap.utils.random(7,10),ease:'sine.inOut',repeat:-1,yoyo:true,repeatRefresh:true,delay:i*.4}))
   },root)
   return()=>ctx.revert()
-
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  },[loading])
 
  return <div ref={root}>
-  <PageHeading eyebrow={tr('YOUR LEARNING SPACE','مساحة تعلّمك')} title={tr('My progress','تقدّمي')} description={tr('See what you have learned and what to review next.','شاهد ما تعلّمته وما تحتاج مراجعته.')}/>
+  <PageHeading eyebrow={tr('YOUR LEARNING SPACE','مساحة تعلّمك')} title={tr('My progress','تقدّمي')} description={tr('Track quiz results from lessons shared with you and decide what to review next.','تابع نتائج اختبارات الدروس المشاركة وياك واعرف شنو تراجع بعدها.')}/>
   {loading?<p className="muted" role="status">{tr('Loading your progress…','جارٍ تحميل تقدّمك…')}</p>
   :error?<p className="error-box" role="alert">{tr('Could not load your progress.','تعذّر تحميل تقدّمك.')} <button onClick={()=>setTick(n=>n+1)}>{tr('Retry','إعادة المحاولة')}</button></p>
   :!lessons.length?<Empty title={tr('No lessons yet','لا توجد دروس بعد')} text={tr('When your teacher shares a lesson, your progress will appear here.','عندما يشارك معلمك درساً، سيظهر تقدّمك هنا.')} to="/app/student" label={tr('My lessons','دروسي')}/>

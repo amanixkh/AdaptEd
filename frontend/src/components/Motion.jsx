@@ -5,6 +5,7 @@ import {Sparkles} from './Icons'
 const calm=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 const format=(n,pad)=>pad?String(n).padStart(pad,'0'):String(n)
 
+/* Number that counts up from zero when it appears or changes. */
 export function CountUp({value,pad=0}){
  const ref=useRef(null),target=Number(value)||0
  useLayoutEffect(()=>{
@@ -19,6 +20,7 @@ export function CountUp({value,pad=0}){
  return <span ref={ref} className="count-up">{format(target,pad)}</span>
 }
 
+/* Flashcard with a real 3D turn. Remount with a new key to show the next card. */
 export function FlipCard({front,back,flipped,onFlip,labels,direction=1}){
  const card=useRef(null),inner=useRef(null),first=useRef(true)
  useLayoutEffect(()=>{
@@ -42,6 +44,7 @@ export function FlipCard({front,back,flipped,onFlip,labels,direction=1}){
  </button>
 }
 
+/* The moment a lesson becomes a new version. */
 export function GeneratingState({tr}){
  const ref=useRef(null)
  const steps=[tr('Reading your lesson…','نقرأ درسك…'),tr('Finding the key ideas…','نلتقط الأفكار الأساسية…'),tr('Shaping a clearer version…','نصوغ نسخة أوضح…')]

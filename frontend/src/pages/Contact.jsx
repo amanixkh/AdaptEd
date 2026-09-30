@@ -38,6 +38,7 @@ function Envelope(){
  </svg>
 }
 
+/* A field whose label floats up when you type, with an icon and a soft glow on focus. */
 function Field({id,label,icon:Icon,error,multiline,children,...props}){
  const Tag=multiline?'textarea':'input'
  return <div className={`fl ${multiline?'fl-area':''} ${error?'has-error':''}`}>
@@ -67,6 +68,7 @@ function ContactContent(){
 
  useEffect(()=>{try{sessionStorage.setItem(DRAFT_KEY,JSON.stringify({topic:form.topic,message:form.message}))}catch{/* ignore */}},[form.topic,form.message])
 
+ /* entrance, living panel, envelope loop, magnetic send button */
  useEffect(()=>{if(!root.current||calm()||state==='done')return;const ctx=gsap.context(()=>{
   const intro=gsap.timeline()
   intro.fromTo('.cx-panel',{clipPath:'inset(100% 0 0 0 round 28px)'},{clipPath:'inset(0% 0 0 0 round 28px)',duration:.9,ease:'power4.inOut'})
@@ -78,7 +80,7 @@ function ContactContent(){
   gsap.utils.toArray('.cx-aurora i').forEach((el,i)=>gsap.to(el,{x:()=>gsap.utils.random(-60,60),y:()=>gsap.utils.random(-50,50),scale:()=>gsap.utils.random(.85,1.25),duration:gsap.utils.random(6,9),ease:'sine.inOut',repeat:-1,yoyo:true,repeatRefresh:true,delay:i*.5}))
   const panel=panelRef.current
   panel?.querySelectorAll('.cx-sparks i').forEach(s=>{const loop=()=>gsap.fromTo(s,{x:gsap.utils.random(0,panel.clientWidth),y:panel.clientHeight+8,opacity:0,scale:gsap.utils.random(.5,1.1)},{y:gsap.utils.random(0,panel.clientHeight*.5),opacity:gsap.utils.random(.3,.8),duration:gsap.utils.random(5,9),ease:'sine.out',delay:gsap.utils.random(0,4),onComplete:()=>gsap.to(s,{opacity:0,duration:.8,onComplete:loop})});loop()})
-  
+  // envelope: the flap opens, the letter peeks out, a paper plane slips out and glides away
   gsap.set('.cx-flap-open',{scaleY:0,transformOrigin:'50% 100%'});gsap.set('.cx-flap-closed',{scaleY:1,transformOrigin:'50% 0%'})
   gsap.set('.cx-letter',{opacity:0})
   const trail=root.current.querySelector('.cx-env-trail'),trailLen=trail?trail.getTotalLength():0,TAIL=70
@@ -99,7 +101,7 @@ function ContactContent(){
    .to('.cx-flap-open',{scaleY:0,duration:.3,ease:'sine.in'},'<-1.6')
    .to('.cx-flap-closed',{scaleY:1,duration:.35,ease:'back.out(1.6)'},'>')
    .add(()=>{fly.p=0;gsap.set('.cx-plane-svg',{...planeAt(0),scale:.4,opacity:0});gsap.set(trail,{strokeDashoffset:TAIL})},'>+.6')
- 
+  // the envelope leans toward the mouse
   const env=root.current.querySelector('.cx-env')
   if(panel&&env&&window.matchMedia('(hover: hover)').matches){
    gsap.set(env,{transformPerspective:800})
@@ -108,7 +110,7 @@ function ContactContent(){
    const leave=()=>{rx(0);ry(0)}
    panel.addEventListener('pointermove',move);panel.addEventListener('pointerleave',leave)
   }
-
+  // the send button leans toward the pointer
   const btn=sendRef.current
   if(btn&&window.matchMedia('(hover: hover)').matches){
    const bx=gsap.quickTo(btn,'x',{duration:.5,ease:'power3.out'}),by=gsap.quickTo(btn,'y',{duration:.5,ease:'power3.out'})
@@ -117,6 +119,7 @@ function ContactContent(){
   }
  },root);return()=>ctx.revert()},[rtl,state])
 
+ /* sliding highlight behind the chosen topic */
  useEffect(()=>{
   const wrap=chips.current,knob=wrap?.querySelector('.cx-chip-knob'),active=wrap?.querySelector('.cx-chip[aria-checked="true"]')
   if(!wrap||!knob||!active)return
@@ -125,6 +128,7 @@ function ContactContent(){
   if(!calm())gsap.fromTo(active.querySelector('svg'),{rotation:-20,scale:.6},{rotation:0,scale:1,duration:.5,ease:'back.out(3)'})
  },[form.topic,rtl])
 
+ /* FAQ rows appear as they scroll into view */
  useEffect(()=>{
   const items=root.current?.querySelectorAll('.cx-faq .cx-faq-reveal');if(!items?.length)return
   if(calm()||!('IntersectionObserver' in window)){items.forEach(i=>i.classList.add('is-in'));return}
@@ -133,6 +137,7 @@ function ContactContent(){
   return()=>io.disconnect()
  },[state])
 
+ /* success: ring, tick, confetti, next steps */
  useEffect(()=>{
   if(state!=='done'||!successRef.current||calm())return
   const ctx=gsap.context(()=>{
@@ -230,7 +235,7 @@ function ContactContent(){
  </div>
 }
 
-
+/* Contact needs a real account. Visitors sign in first; demo users can look around but not send. */
 export default function Contact(){
  const{user,loading}=useApp()
  if(loading)return null

@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import {demoBlocked} from '../utils/demoGuard'
 import { PageHeading } from "../components/UI";
-import { Archive, Trash2, ArchiveRestore } from "../components/Icons";
+import { Archive, Trash2, ArchiveRestore, Search, ArrowRight, BookOpen } from "../components/Icons";
 import "../polish.css";
+import {Link} from "react-router-dom";
 
 export function ArchivePage() {
   const { tr,lang,user,archivedLessons:archived,refreshArchive,restoreLesson,deleteForeverLesson } = useApp();
@@ -15,6 +16,7 @@ export function ArchivePage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const locale=lang==='en'?'en-GB':lang==='ckb'?'ckb-IQ':'ar-IQ';
   const date=value=>value?new Date(value).toLocaleDateString(locale):'—';
+  const libraryUrl=user?.role==='student'?'/app/student/library':'/app/history';
 
   async function loadArchivedLessons() {
     setLoading(true);
@@ -28,6 +30,8 @@ export function ArchivePage() {
     }
   }
 
+  // Load the archive once on entry.
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { loadArchivedLessons(); }, []);
 
   useEffect(() => {
@@ -61,11 +65,12 @@ export function ArchivePage() {
   }
 
   const filtered = archived.filter((l) =>
-    (l.title || l.original_name || "").toLowerCase().includes(search.toLowerCase())
+    `${l.title || l.original_name || ""} ${l.fileName || ""}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
   );
 
   return (
     <div className="archive-container">
+      <section className="archive-feature"><div className="archive-feature-art" aria-hidden="true"><span><Archive size={28}/></span><i/><i/></div><div className="archive-feature-copy"><p>{user?.role==='student'?tr('YOUR STUDY LIBRARY','مكتبة تعلّمك'):tr('YOUR TEACHING LIBRARY','مكتبة دروسك')}</p><strong>{tr('Everything worth keeping, in one place.','كل دروسك المهمة بمكان واحد.')}</strong><span>{tr('Archived lessons stay here until you restore or delete them.','دروسك المؤرشفة تبقى هنا إلى أن تسترجعها أو تحذفها.')}</span></div><div className="archive-feature-count"><b>{archived.length}</b><small>{tr('Archived','مؤرشف')}</small></div></section>
       <PageHeading
         eyebrow={tr("MANAGE YOUR LIBRARY", "إدارة مكتبتك")}
         title={tr("Archived Lessons", "الدروس المؤرشفة")}
@@ -73,16 +78,16 @@ export function ArchivePage() {
           "Restore or permanently delete archived lessons.",
           "استعد الدروس المؤرشفة أو احذفها نهائياً."
         )}
-      />
+      ><Link className="secondary-btn" to={libraryUrl}>{tr("Open my lessons","افتح دروسي")}<ArrowRight size={16}/></Link></PageHeading>
 
-      <div className="archive-controls">
+      <div className="archive-controls"><label className="archive-search"><Search size={18}/>
         <input
           type="text"
           placeholder={tr("Search archived lessons…", "ابحث في الدروس المؤرشفة…")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="search-input"
-        />
+          className="search-input" aria-label={tr("Search archived lessons","البحث في الدروس المؤرشفة")}
+        /></label><span className="archive-count">{archived.length} {tr("archived lessons","دروس مؤرشفة")}</span>
       </div>
 
       {loading ? (
@@ -94,8 +99,8 @@ export function ArchivePage() {
           <p>
             {search
               ? tr("Try adjusting your search", "حاول تعديل بحثك")
-              : tr("Archive lessons to remove them from your active library", "أرشف الدروس لإزالتها من مكتبتك النشطة")}
-          </p>
+              : tr("Archived lessons will appear here when you move them out of your library.", "إذا أرشفت درساً، راح يظهر هنا وتكدر تسترجعه بأي وقت.")}
+          </p><Link className="soft-btn" to={libraryUrl}><BookOpen size={16}/>{tr("Go to my lessons","اذهب إلى دروسي")}</Link>
         </div>
       ) : (
         <div className="archive-list">
@@ -104,9 +109,9 @@ export function ArchivePage() {
               <div className="archive-info">
                 <h3>{lesson.title || lesson.original_name}</h3>
                 <div className="archive-meta">
-                  <span>{tr("Uploaded","رُفع")}: {date(lesson.created_at)}</span>
-                  <span>{tr("Archived","أُرشف")}: {date(lesson.archived_at)}</span>
-                  <span className="pill">{lesson.generated_count || 0} {tr("versions","نسخ")}</span>
+                  <span>{tr("Uploaded","رُفع")}: {date(lesson.created_at||lesson.createdAt)}</span>
+                  <span>{tr("Archived","أُرشف")}: {date(lesson.archived_at||lesson.archivedAt)}</span>
+                  <span className="pill">{lesson.generated_count ?? Object.keys(lesson.outputs||{}).length} {tr("versions","نسخ")}</span>
                 </div>
               </div>
 
@@ -172,7 +177,7 @@ export function ArchivePage() {
       )}
 
       {toastMessage && (
-        <div className="toast">
+        <div className="toast" role="status">
           <p>{toastMessage}</p>
         </div>
       )}
