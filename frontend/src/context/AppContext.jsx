@@ -1,6 +1,7 @@
 import {ckb} from '../i18n/ckb'
 import {createContext,useContext,useEffect,useState} from 'react'
-import {api,DEMO,PLAN_RESTRICTIONS_BYPASSED} from '../services/api'
+import {api,DEMO,TEST,PLAN_RESTRICTIONS_BYPASSED} from '../services/api'
+import {makeSample} from '../data/demo'
 const Context=createContext(null)
 function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
 export function AppProvider({children}){
@@ -12,13 +13,13 @@ export function AppProvider({children}){
  const [settings,setSettings]=useState(()=>read('adapted-accessibility',{large:false,contrast:false,motion:false}))
  const tr=(en,ar)=>lang==='ckb'?(ckb[en]||en):lang==='ar'?ar:en
  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=lang==='en'?'ltr':'rtl';try{localStorage.setItem('adapted-language',lang)}catch{void 0}},[lang])
-
+                                                            
  useEffect(()=>{try{localStorage.setItem('adapted-accessibility',JSON.stringify(settings));if(DEMO){localStorage.setItem('adapted-demo-user',JSON.stringify(user));localStorage.setItem('adapted-demo-lessons',JSON.stringify(lessons));localStorage.setItem('adapted-demo-archived',JSON.stringify(archivedLessons))}setStorageError(false)}catch{setStorageError(true)}},[settings,user,lessons,archivedLessons])
  useEffect(()=>{if(DEMO)return;api.me().then(r=>setUser(r.user)).catch(()=>setUser(null)).finally(()=>setLoading(false))},[])
- async function refresh(){setLoadError(false);try{setLessons(await api.list())}catch{setLoadError(true)}}
-
- useEffect(()=>{if(!DEMO&&user?.role!=='student'&&user)refresh()},[user])
- function addLesson(lesson){setLessons(old=>[lesson,...old.filter(x=>x.id!==lesson.id)])}
+ async function refresh(){setLoadError(false);try{setLessons(await api.list())}catch{if(user?.role==='student')setLessons([]);else setLoadError(true)}}
+                                                                                         
+ useEffect(()=>{if(!DEMO&&user)refresh()},[user])
+ function addLesson(lesson){const tagged={...lesson,ownerRole:lesson.ownerRole||(user?.role==='student'?'student':'teacher')};setLessons(old=>[tagged,...old.filter(x=>x.id!==tagged.id)])}
  async function updateLesson(lesson,persist=true){if(!DEMO&&persist)await api.save(lesson.id,lesson.outputs,lessons.find(x=>x.id===lesson.id)?.outputs||{});setLessons(old=>old.map(x=>x.id===lesson.id?lesson:x))}
  async function deleteLesson(id){if(!DEMO)await api.remove(id);setLessons(old=>old.filter(lesson=>lesson.id!==id))}
  async function archiveLesson(id){if(!DEMO)await api.archive(id);else{const lesson=lessons.find(item=>item.id===id);if(lesson)setArchivedLessons(old=>[{...lesson,archived_at:new Date().toISOString(),created_at:lesson.createdAt,original_name:lesson.fileName,generated_count:Object.keys(lesson.outputs||{}).length},...old.filter(item=>item.id!==id)])}setLessons(old=>old.filter(lesson=>lesson.id!==id))}
@@ -26,10 +27,12 @@ export function AppProvider({children}){
  async function deleteForeverLesson(id){if(!DEMO)await api.deleteForever(id);setArchivedLessons(old=>old.filter(lesson=>lesson.id!==id))}
  async function refreshArchive(){if(!DEMO){const result=await api.archived();setArchivedLessons(result.lessons||[])}else{setArchivedLessons(read('adapted-demo-archived',[]))}}
  async function logout(){if(!DEMO)await api.logout();setUser(null);if(!DEMO){setLessons([]);setArchivedLessons([])}}
- 
+                                                                                        
+                                                                                                   
  const planKey=`adapted-plan:${user?.email||user?.name||'guest'}`
  const[planStore,setPlanStore]=useState(()=>read('adapted-plans',{}))
-
+                                                                                               
+                                                    
  const[serverPlan,setServerPlan]=useState(null)
  const planFromServer=sub=>{if(!sub)return null;const name=String(sub.plan||'').toLowerCase();return name.includes('school')?'school':(sub.isPaid||name.includes('pro'))?'pro':'free'}
  useEffect(()=>{
@@ -40,9 +43,8 @@ export function AppProvider({children}){
  },[user])
  const plan=user?.plan||serverPlan||planStore[planKey]||'free'
  const isPaidPlan=user?.role==='student'||plan==='pro'||plan==='school'
- const isPremium=PLAN_RESTRICTIONS_BYPASSED||isPaidPlan
- function setPlan(next){setPlanStore(old=>{const merged={...old,[planKey]:next};try{localStorage.setItem('adapted-plans',JSON.stringify(merged))}catch{/* ignore */}return merged});if(DEMO||user?.demo)return;setServerPlan(next)}
- 
+ const isPremium=TEST||PLAN_RESTRICTIONS_BYPASSED||isPaidPlan
+ function setPlan(next){setPlanStore(old=>{const merged={...old,[planKey]:next};try{localStorage.setItem('adapted-plans',JSON.stringify(merged))}catch{}return merged});if(DEMO||user?.demo)return;setServerPlan(next)}
  async function upgradePlan(next,billing){
   if(DEMO||user?.demo){setPlan(next);return}
   let plans
@@ -54,8 +56,12 @@ export function AppProvider({children}){
   const sub=await api.subscriptionStatus().catch(()=>null)
   setServerPlan(planFromServer(sub)||next)
  }
- function demoLogin(role='teacher'){setUser({name:role==='student'?tr('Demo student','الطالب التجريبي'):tr('Demo teacher','المعلم التجريبي'),role,demo:true})}
- return <Context.Provider value={{lang,setLang,tr,user,setUser,lessons,addLesson,updateLesson,deleteLesson,archiveLesson,restoreLesson,deleteForeverLesson,refreshArchive,archivedLessons,settings,setSettings,logout,demoLogin,plan,setPlan,upgradePlan,isPremium,isPaidPlan,planRestrictionsBypassed:PLAN_RESTRICTIONS_BYPASSED,loading,loadError,refresh,storageError}}>{children}</Context.Provider>
+ function demoLogin(role='teacher'){setUser({name:role==='student'?tr('Demo student','الطالب التجريبي'):tr('Demo teacher','المعلم التجريبي'),role,demo:true});if(TEST)setLessons(old=>old.some(l=>l.ownerRole===role)?old:[{...makeSample(lang),ownerRole:role},...old])}
+                                                                                                  
+ const myRole=user?.role==='student'?'student':'teacher'
+ const visibleLessons=DEMO?lessons.filter(l=>(l.ownerRole||'teacher')===myRole):lessons
+ const visibleArchived=DEMO?archivedLessons.filter(l=>(l.ownerRole||'teacher')===myRole):archivedLessons
+ return <Context.Provider value={{lang,setLang,tr,user,setUser,lessons:visibleLessons,addLesson,updateLesson,deleteLesson,archiveLesson,restoreLesson,deleteForeverLesson,refreshArchive,archivedLessons:visibleArchived,settings,setSettings,logout,demoLogin,plan,setPlan,upgradePlan,isPremium,isPaidPlan,planRestrictionsBypassed:PLAN_RESTRICTIONS_BYPASSED,loading,loadError,refresh,storageError}}>{children}</Context.Provider>
 }
-
+                                                                
 export const useApp=()=>useContext(Context)

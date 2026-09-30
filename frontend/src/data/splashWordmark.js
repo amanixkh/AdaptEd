@@ -1,3 +1,5 @@
+                                                                                               
+                                                 
 export const WORD_VIEWBOX='16 -1464 7499 1968'
 export const WORD_BASELINE=0
 export const WORD_WIDTH=7451

@@ -3,6 +3,7 @@ import {gsap} from 'gsap'
 
 const calm=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
+                                                                                       
 export function useQuizFeedback(checked,perfect){
  const ref=useRef(null)
  useEffect(()=>{
@@ -27,6 +28,7 @@ export function useQuizFeedback(checked,perfect){
  return ref
 }
 
+                                                                                        
 export function useRevealOnTick(tick){
  const ref=useRef(null)
  useEffect(()=>{

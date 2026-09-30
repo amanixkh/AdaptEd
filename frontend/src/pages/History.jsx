@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { demoBlocked } from '../utils/demoGuard'
-import { Search, Plus, Archive } from '../components/Icons'
+import { uploadPath } from '../utils/paths'
+import { Search, Plus, Archive, BookOpen } from '../components/Icons'
 import { useApp } from '../context/AppContext'
 import { PageHeading, Empty, LessonRow, ErrorBox, Busy, Toast } from '../components/UI'
 
@@ -79,7 +80,9 @@ export default function History() {
 
     return (
         <>
-            <PageHeading
+            <section className="library-feature">
+                <div className="library-feature-copy">
+                    <PageHeading
                 eyebrow={tr(
                     'YOUR KNOWLEDGE, ORGANISED',
                     'معرفتك في مكان واحد'
@@ -92,12 +95,13 @@ export default function History() {
                     'Return to your lessons and continue where you left off.',
                     'ارجع إلى دروسك وأكمل من حيث توقّفت.'
                 )}
-            >
-                <Link to="/app/upload" className="primary-btn">
-                    <Plus size={18} />
-                    {tr('New lesson', 'درس جديد')}
-                </Link>
-            </PageHeading>
+            />
+
+                <div className="library-feature-stats"><span><strong>{lessons.length}</strong>{tr('Lessons', 'دروس')}</span><span><strong>{lessons.reduce((count, lesson) => count + Object.keys(lesson.outputs || {}).length, 0)}</strong>{tr('Saved versions', 'نسخ محفوظة')}</span></div>
+                <Link to={uploadPath(user)} className="library-feature-action"><Plus size={18} />{tr('New lesson', 'درس جديد')}</Link>
+                </div>
+                <div className="library-feature-art" aria-hidden="true"><div className="library-book library-book-back"/><div className="library-book library-book-front"><BookOpen size={30}/><i/><i/><i/></div><span className="library-spark">✦</span></div>
+            </section>
 
             <section className="panel">
                 <div className="library-toolbar">
@@ -219,7 +223,7 @@ export default function History() {
                                     'ارفع درسك الأول للبدء.'
                                 )
                         }
-                        to="/app/upload"
+                        to={uploadPath(user)}
                         label={tr(
                             'Upload lesson',
                             'رفع درس'

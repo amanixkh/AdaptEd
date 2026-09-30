@@ -1,4 +1,4 @@
-
+                                                                       
 export const PLANS=[
  {id:'free',monthly:0,yearly:0,featured:false},
  {id:'pro',monthly:15000,yearly:12500,featured:true},

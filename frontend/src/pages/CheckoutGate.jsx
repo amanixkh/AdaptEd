@@ -1,6 +1,8 @@
 import {Navigate,useParams,useLocation} from 'react-router-dom'
 import {useApp} from '../context/AppContext'
 
+                                                                           
+                                                                              
 export default function CheckoutGate(){
  const{user,loading}=useApp(),{plan}=useParams(),{search}=useLocation()
  const target=`/app/checkout/${plan}${search}`

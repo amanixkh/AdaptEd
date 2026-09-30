@@ -1,3 +1,5 @@
+                                                                          
+                                                    
 import {useEffect,useRef,useState} from 'react'
 import {Trophy,RefreshCw,Users,Check} from 'lucide-react'
 import {gsap} from 'gsap'

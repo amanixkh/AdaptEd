@@ -19,9 +19,10 @@ export default function Landing(){
  const [tab,setTab]=useState(1),[answer,setAnswer]=useState(null),[notice,setNotice]=useState(false)
  const paused=false
  const t=lang==='ckb'?landingCkb:dictionaries[lang],rtl=lang!=='en'
- useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';document.title=rtl?'AdaptEd | درس واحد لكل متعلّم':'AdaptEd | One lesson. Every learner.';try{localStorage.setItem('adapted-language',lang)}catch{/* Storage unavailable. */}},[lang,rtl])
+ useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';document.title=rtl?'AdaptEd | درس واحد لكل متعلّم':'AdaptEd | One lesson. Every learner.';try{localStorage.setItem('adapted-language',lang)}catch{                          }},[lang,rtl])
  useEffect(()=>{
-  
+                                                                                     
+                                                                                 
   if(!writeNotes)return
   let ctx,waiting=false
   const write=()=>{ctx=gsap.context(()=>{
