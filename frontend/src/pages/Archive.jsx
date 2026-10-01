@@ -18,21 +18,21 @@ export function ArchivePage() {
   const date=value=>value?new Date(value).toLocaleDateString(locale):'—';
   const libraryUrl=user?.role==='student'?'/app/student/library':'/app/history';
 
-  async function loadArchivedLessons() {
-    setLoading(true);
-    try {
-      await refreshArchive();
-    } catch (error) {
-      console.error("Error loading archived lessons:", error);
-      setToastMessage(tr("Could not load archived lessons.", "تعذّر تحميل الدروس المؤرشفة."));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-                                    
-                                                                                          
-  useEffect(() => { loadArchivedLessons(); }, []);
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      setLoading(true);
+      try {
+        await refreshArchive();
+      } catch (error) {
+        console.error("Error loading archived lessons:", error);
+        if (active) setToastMessage(tr("Could not load archived lessons.", "تعذّر تحميل الدروس المؤرشفة."));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!toastMessage) return;

@@ -101,6 +101,7 @@ async function regenerateContent({ lessonId, mode, features, quizCount }) {
     return {
         generatedContentId: generated.map((item) => item.generatedContentId),
         data: Object.fromEntries(generated.map((item) => [item.feature, item.content])),
+        message: generated.find((item) => item.message)?.message,
     };
 }
 

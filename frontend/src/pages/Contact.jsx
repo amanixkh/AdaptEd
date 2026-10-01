@@ -69,7 +69,7 @@ function ContactContent(){
  useEffect(()=>{try{sessionStorage.setItem(DRAFT_KEY,JSON.stringify({topic:form.topic,message:form.message}))}catch{            }},[form.topic,form.message])
 
                                                                   
- useEffect(()=>{if(!root.current||calm()||state==='done')return;const ctx=gsap.context(()=>{
+ useEffect(()=>{if(!root.current||calm()||state==='done')return;const listeners=[];const ctx=gsap.context(()=>{
   const intro=gsap.timeline()
   intro.fromTo('.cx-panel',{clipPath:'inset(100% 0 0 0 round 28px)'},{clipPath:'inset(0% 0 0 0 round 28px)',duration:.9,ease:'power4.inOut'})
    .from('.cx-eyebrow',{y:12,opacity:0,duration:.4},'-=.35')
@@ -108,16 +108,19 @@ function ContactContent(){
    const rx=gsap.quickTo(env,'rotationX',{duration:.7,ease:'power3.out'}),ry=gsap.quickTo(env,'rotationY',{duration:.7,ease:'power3.out'})
    const move=e=>{const r=panel.getBoundingClientRect();ry(((e.clientX-r.left)/r.width-.5)*(rtl?-22:22));rx(-((e.clientY-r.top)/r.height-.5)*16)}
    const leave=()=>{rx(0);ry(0)}
-   panel.addEventListener('pointermove',move);panel.addEventListener('pointerleave',leave)
+    panel.addEventListener('pointermove',move);panel.addEventListener('pointerleave',leave)
+    listeners.push(()=>{panel.removeEventListener('pointermove',move);panel.removeEventListener('pointerleave',leave)})
   }
                                              
   const btn=sendRef.current
   if(btn&&window.matchMedia('(hover: hover)').matches){
    const bx=gsap.quickTo(btn,'x',{duration:.5,ease:'power3.out'}),by=gsap.quickTo(btn,'y',{duration:.5,ease:'power3.out'})
-   btn.addEventListener('pointermove',e=>{const r=btn.getBoundingClientRect();bx((e.clientX-r.left-r.width/2)*.06);by((e.clientY-r.top-r.height/2)*.25)})
-   btn.addEventListener('pointerleave',()=>{bx(0);by(0)})
+    const move=e=>{const r=btn.getBoundingClientRect();bx((e.clientX-r.left-r.width/2)*.06);by((e.clientY-r.top-r.height/2)*.25)}
+    const leave=()=>{bx(0);by(0)}
+    btn.addEventListener('pointermove',move);btn.addEventListener('pointerleave',leave)
+    listeners.push(()=>{btn.removeEventListener('pointermove',move);btn.removeEventListener('pointerleave',leave)})
   }
- },root);return()=>ctx.revert()},[rtl,state])
+ },root);return()=>{listeners.forEach(cleanup=>cleanup());ctx.revert()}},[rtl,state])
 
                                                 
  useEffect(()=>{

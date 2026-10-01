@@ -197,6 +197,13 @@ describe("Phase 1 - an independent student manages their own lessons only", () =
       ["flashcards", "quiz", "summary"]
     );
     assert.deepEqual(response.data.failed, []);
+    assert.deepEqual(
+      response.data.results.map((item) => item.type).sort(),
+      ["flashcards", "quiz", "summary"]
+    );
+    assert.equal(typeof response.data.results.find((item) => item.type === "summary").content, "string");
+    assert.equal(response.data.results.find((item) => item.type === "quiz").content.length, 5);
+    assert.ok(Array.isArray(response.data.results.find((item) => item.type === "flashcards").content));
 
     const rows = await listGeneratedContent(ctx.lessons.a.id);
     const quiz = rows.find((row) => row.content_type === "quiz");
@@ -204,6 +211,50 @@ describe("Phase 1 - an independent student manages their own lessons only", () =
     assert.equal(JSON.parse(quiz.content).quiz.length, 5);
     assert.equal(rows.filter((row) => row.content_type === "summary").length, 1);
     assert.equal(rows.filter((row) => row.content_type === "flashcards").length, 1);
+  });
+
+  it("generates only the supported number of quiz questions when content is limited", async () => {
+    const lesson = await createLesson(
+      ctx.users.studentA,
+      `Student A limited quiz ${runId}`,
+      "QUIZ_CAPACITY_7 This lesson explains a small set of connected science concepts."
+    );
+    ctx.lessons.limitedQuiz = lesson;
+
+    const response = await api("POST", "/api/generate", {
+      ...auth(ctx.users.studentA),
+      json: { lessonId: lesson.id, features: ["quiz"], questionCount: 10 },
+    });
+
+    assert.equal(response.status, 201, JSON.stringify(response.data));
+    assert.match(response.data.message, /Only 7 high-quality questions were generated/);
+    const quizRow = (await listGeneratedContent(lesson.id)).find((row) => row.content_type === "quiz");
+    assert.ok(quizRow, "supported quiz content was not stored");
+    assert.equal(JSON.parse(quizRow.content).quiz.length, 7);
+  });
+
+  it("does not generate a quiz when fewer than five questions are supported", async () => {
+    const lesson = await createLesson(
+      ctx.users.studentA,
+      `Student A short quiz ${runId}`,
+      "QUIZ_CAPACITY_4 This lesson contains only a few facts."
+    );
+    ctx.lessons.shortQuiz = lesson;
+
+    const response = await api("POST", "/api/generate", {
+      ...auth(ctx.users.studentA),
+      json: { lessonId: lesson.id, features: ["summary", "quiz", "flashcards"], questionCount: 10 },
+    });
+
+    assert.equal(response.status, 201, JSON.stringify(response.data));
+    assert.match(response.data.message, /too short to generate a reliable quiz/);
+    assert.deepEqual(response.data.failed, ["quiz"]);
+    assert.deepEqual(
+      response.data.results.map((item) => [item.type, item.status]),
+      [["summary", "completed"], ["quiz", "failed"], ["flashcards", "completed"]]
+    );
+    const rows = await listGeneratedContent(lesson.id);
+    assert.deepEqual(rows.map((row) => row.content_type).sort(), ["flashcards", "summary"]);
   });
 
   it("Student A regenerates simplified content with the Dyslexia mode on their own lesson", async () => {

@@ -35,7 +35,8 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
  const [historyOpen,setHistoryOpen]=useState(false)
  const[studentLessons,setStudentLessons]=useState([]),[lessonId,setLessonId]=useState(contextLessonId||saved?.sessions?.find(s=>s.id===saved.currentId)?.lessonId||''),[lastContext,setLastContext]=useState(contextLessonId)
  const[messages,setMessages]=useState(saved?.sessions?.find(s=>s.id===saved.currentId)?.messages||[]),[input,setInput]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState('')
- const listRef=useRef(null),inputRef=useRef(null),handled=useRef(null)
+ const listRef=useRef(null),inputRef=useRef(null),handled=useRef(null),mounted=useRef(false)
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[])
  const available=isStudent?[...lessons,...studentLessons.filter(s=>!lessons.some(l=>String(l.id)===String(s.id))).map(s=>({...s,shared:true}))]:lessons
                                                                                                      
  const needsLesson=!DEMO,activeId=lessonId||String(available[0]?.id??'')
@@ -72,9 +73,10 @@ export default function TutorChat({compact=false,contextLessonId='',pendingAsk,o
   try{
    const text=lesson?.text||(lesson?(await (lesson.shared?api.studentLesson(lesson.id):api.ownLesson(lesson.id)).catch(()=>null))?.text:'')
    const reply=await api.tutor({messages:history,lessonId:lesson?.id,lang,lessonText:text,role:user?.role})
+    if(!mounted.current)return
    setMessages([...history,{role:'assistant',content:reply}]);onReply?.()
-  }catch{setError(tr('The tutor could not answer right now. Please try again.','لم يتمكن المعلّم من الرد الآن. حاول مجدداً.'))}
-  finally{setLoading(false);inputRef.current?.focus()}
+  }catch{if(mounted.current)setError(tr('The tutor could not answer right now. Please try again.','لم يتمكن المعلّم من الرد الآن. حاول مجدداً.'))}
+  finally{if(mounted.current){setLoading(false);inputRef.current?.focus()}}
  }
  function send(textArg){
   const text=(textArg??input).trim()
