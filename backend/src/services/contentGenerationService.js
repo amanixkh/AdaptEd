@@ -5,6 +5,36 @@ const { generate } = require("./ai/generateService");
 const MAX_DIRECT_TEXT_CHARS = Number(process.env.AI_MAX_DIRECT_TEXT_CHARS) || 30000;
 const CHUNK_SIZE_CHARS = Number(process.env.AI_CHUNK_SIZE_CHARS) || 12000;
 const GENERATED_CONTENT_QUERY_TIMEOUT_MS = Number(process.env.GENERATED_CONTENT_QUERY_TIMEOUT_MS) || 30000;
+const MIN_QUIZ_QUESTIONS = 5;
+
+const QUIZ_GENERATION_MESSAGES = {
+    en: "We couldn't generate a valid quiz from this lesson. The content may be insufficient; please add more lesson material.",
+    ar: "تعذر إنشاء اختبار صالح من هذا الدرس. قد لا يحتوي المحتوى على معلومات كافية؛ يرجى إضافة المزيد من محتوى الدرس.",
+    ckb: "نەتوانرا تاقیکردنەوەیەکی دروست لەم وانەیەوە دروست بکرێت. لەوانەیە ناوەڕۆکەکە بەس نەبێت؛ تکایە ناوەڕۆکی زیاتر زیاد بکە.",
+};
+
+function getQuizGenerationErrorMessage(language) {
+    const normalized = String(language || "en").trim().toLowerCase();
+    if (["ar", "arabic"].includes(normalized)) return QUIZ_GENERATION_MESSAGES.ar;
+    if (["ckb", "ku", "kur", "kurdish", "sorani"].includes(normalized)) return QUIZ_GENERATION_MESSAGES.ckb;
+    return QUIZ_GENERATION_MESSAGES.en;
+}
+
+class QuizGenerationError extends Error {
+    constructor(language) {
+        super(getQuizGenerationErrorMessage(language));
+        this.name = "QuizGenerationError";
+        this.statusCode = 422;
+    }
+}
+
+class InvalidQuizResponseError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "InvalidQuizResponseError";
+        this.code = "INVALID_QUIZ_RESPONSE";
+    }
+}
 
 function estimateTokens(text) {
     return Math.ceil(text.length / 4);
@@ -85,9 +115,16 @@ function hasExactKeys(value, keys) {
 }
 
 function validateFeatureResponse(feature, text, { quizCount } = {}) {
-    const data = parseJson(text);
+    let data;
+    try {
+        data = parseJson(text);
+    } catch (error) {
+        if (feature === "quiz") throw new InvalidQuizResponseError(error.message);
+        throw error;
+    }
 
     if (!hasExactKeys(data, [feature])) {
+        if (feature === "quiz") throw new InvalidQuizResponseError("AI response must contain only the quiz field");
         throw new Error(`AI response must contain only the ${feature} field`);
     }
 
@@ -99,13 +136,14 @@ function validateFeatureResponse(feature, text, { quizCount } = {}) {
     }
 
     if (!Array.isArray(data[feature])) {
+        if (feature === "quiz") throw new InvalidQuizResponseError("quiz must be an array");
         throw new Error(`${feature} must be an array`);
     }
 
     if (feature === "quiz") {
         const expectedCount = Number.isInteger(quizCount) ? quizCount : resolveQuizCount();
         if (data.quiz.length !== 0 && data.quiz.length !== expectedCount) {
-            throw new Error(`quiz must contain exactly ${expectedCount} questions or be empty`);
+            throw new InvalidQuizResponseError(`quiz must contain exactly ${expectedCount} questions or be empty`);
         }
 
         const questions = new Set();
@@ -115,12 +153,12 @@ function validateFeatureResponse(feature, text, { quizCount } = {}) {
                 typeof item.explanation !== "string" || !Array.isArray(item.options) ||
                 item.options.length !== 4 || item.options.some((option) => typeof option !== "string") ||
                 new Set(item.options).size !== 4 || !item.options.includes(item.answer)) {
-                throw new Error("quiz does not match the required schema");
+                throw new InvalidQuizResponseError("quiz does not match the required schema");
             }
 
             const normalizedQuestion = item.question.trim().toLowerCase();
             if (!normalizedQuestion || questions.has(normalizedQuestion)) {
-                throw new Error("quiz contains an empty or duplicate question");
+                throw new InvalidQuizResponseError("quiz contains an empty or duplicate question");
             }
             questions.add(normalizedQuestion);
         }
@@ -224,6 +262,10 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
         sourcePreparationMs,
     });
 
+    if (feature === "quiz" && !sourceText.trim()) {
+        throw new QuizGenerationError(profile?.language);
+    }
+
     const quizCount = feature === "quiz" ? resolveQuizCount(profile) : undefined;
     const promptStartedAt = Date.now();
     const prompt = createPrompt(feature, profile, sourceText);
@@ -236,10 +278,23 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
         sourcePreparationMs,
     });
 
-    const { data, provider, timings } = await generate(prompt, {
-        responseFormat: "json",
-        validate: (responseText) => validateFeatureResponse(feature, responseText, { quizCount }),
-    });
+    let generated;
+    try {
+        generated = await generate(prompt, {
+            responseFormat: "json",
+            validate: (responseText) => validateFeatureResponse(feature, responseText, { quizCount }),
+        });
+    } catch (error) {
+        const invalidQuizResponse = feature === "quiz" && error.name === "AIProviderError" &&
+            error.failures?.some(({ error: failure }) => failure instanceof InvalidQuizResponseError);
+        if (invalidQuizResponse) throw new QuizGenerationError(profile?.language);
+        throw error;
+    }
+    const { data, provider, timings } = generated;
+
+    if (feature === "quiz" && data.quiz.length < MIN_QUIZ_QUESTIONS) {
+        throw new QuizGenerationError(profile?.language);
+    }
     const content = JSON.stringify(data);
 
     console.log(`[DB] Saving regenerated ${feature} for lesson ${lessonId}`);
@@ -276,4 +331,6 @@ module.exports = {
     generateAndSaveFeature,
     validateFeatureResponse,
     compactLongText,
+    QuizGenerationError,
+    getQuizGenerationErrorMessage,
 };

@@ -4,7 +4,11 @@ const router = express.Router();
 const pool = require("../config/db");
 const authMiddleware = require("../middleware/authMiddleware");
 const { regenerate } = require("../controllers/regenerateController");
-const { generateAndSaveFeature } = require("../services/contentGenerationService");
+const {
+    generateAndSaveFeature,
+    QuizGenerationError,
+    getQuizGenerationErrorMessage,
+} = require("../services/contentGenerationService");
 
 // Only these feature names are ever generated/saved; anything else is ignored.
 const ALLOWED_FEATURES = ["summary", "quiz", "flashcards"];
@@ -138,10 +142,12 @@ router.post("/", authMiddleware, async (req, res) => {
 
         const text = lesson.rows[0].extracted_text;
 
-        if (!text) {
+        if (typeof text !== "string" || !text.trim()) {
             return res.status(400).json({
                 success: false,
-                message: "No extracted text found for this lesson",
+                message: featuresToGenerate.includes("quiz")
+                    ? getQuizGenerationErrorMessage(profileWithQuestionCount.language)
+                    : "No extracted text found for this lesson",
             });
         }
 
@@ -149,6 +155,7 @@ router.post("/", authMiddleware, async (req, res) => {
         const failed = [];
         const failureErrors = [];
         const results = [];
+        let quizGenerationError;
 
         // 4- Generate + persist content, one row per requested feature. A failure
         // on one feature (prompt/AI/DB) is recorded in `failed` and does NOT stop
@@ -174,6 +181,7 @@ router.post("/", authMiddleware, async (req, res) => {
                 failed.push(feature);
                 failureErrors.push(error);
                 results.push({ type: feature, status: "failed", error: error.message });
+                if (error instanceof QuizGenerationError) quizGenerationError = error;
             }
         }
 
@@ -181,11 +189,11 @@ router.post("/", authMiddleware, async (req, res) => {
             const providersUnavailable = failureErrors.every(
                 (error) => error.name === "AIProviderError"
             );
-            return res.status(providersUnavailable ? 503 : 500).json({
+            return res.status(quizGenerationError ? quizGenerationError.statusCode : providersUnavailable ? 503 : 500).json({
                 success: false,
-                message: providersUnavailable
+                message: quizGenerationError?.message || (providersUnavailable
                     ? "AI service is temporarily unavailable. Please try again later."
-                    : "Content generation failed.",
+                    : "Content generation failed."),
                 generated,
                 failed,
                 results,
@@ -197,6 +205,7 @@ router.post("/", authMiddleware, async (req, res) => {
             generated,
             failed,
             results,
+            ...(quizGenerationError ? { message: quizGenerationError.message } : {}),
         });
 
     } catch (error) {
