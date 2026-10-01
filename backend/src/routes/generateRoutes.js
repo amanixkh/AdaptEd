@@ -4,10 +4,7 @@ const router = express.Router();
 const pool = require("../config/db");
 const authMiddleware = require("../middleware/authMiddleware");
 const { regenerate } = require("../controllers/regenerateController");
-const {
-    generateAndSaveFeature,
-    QuizContentTooShortError,
-} = require("../services/contentGenerationService");
+const { generateAndSaveFeature } = require("../services/contentGenerationService");
 
 // Only these feature names are ever generated/saved; anything else is ignored.
 const ALLOWED_FEATURES = ["summary", "quiz", "flashcards"];
@@ -151,7 +148,6 @@ router.post("/", authMiddleware, async (req, res) => {
         const generated = [];
         const failed = [];
         const failureErrors = [];
-        const featureMessages = [];
         const results = [];
 
         // 4- Generate + persist content, one row per requested feature. A failure
@@ -173,13 +169,11 @@ router.post("/", authMiddleware, async (req, res) => {
                     generatedContentId: result.generatedContentId,
                     content: result.content,
                 });
-                if (result.message) featureMessages.push(result.message);
             } catch (error) {
                 console.error(`[AI] ${feature} failed:`, error.message);
                 failed.push(feature);
                 failureErrors.push(error);
                 results.push({ type: feature, status: "failed", error: error.message });
-                if (error instanceof QuizContentTooShortError) featureMessages.push(error.message);
             }
         }
 
@@ -187,15 +181,9 @@ router.post("/", authMiddleware, async (req, res) => {
             const providersUnavailable = failureErrors.every(
                 (error) => error.name === "AIProviderError"
             );
-            const quizContentTooShort = failureErrors.some(
-                (error) => error instanceof QuizContentTooShortError
-            );
-
-            return res.status(quizContentTooShort ? 422 : providersUnavailable ? 503 : 500).json({
+            return res.status(providersUnavailable ? 503 : 500).json({
                 success: false,
-                message: quizContentTooShort
-                    ? failureErrors.find((error) => error instanceof QuizContentTooShortError).message
-                    : providersUnavailable
+                message: providersUnavailable
                     ? "AI service is temporarily unavailable. Please try again later."
                     : "Content generation failed.",
                 generated,
@@ -209,7 +197,6 @@ router.post("/", authMiddleware, async (req, res) => {
             generated,
             failed,
             results,
-            ...(featureMessages.length ? { message: featureMessages.join(" ") } : {}),
         });
 
     } catch (error) {

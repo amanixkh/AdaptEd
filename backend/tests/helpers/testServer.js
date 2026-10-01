@@ -30,16 +30,6 @@ function buildStubPayload(prompt) {
     return { notes: ["Stubbed source note for compaction."] };
   }
 
-  if (prompt.includes('"supportedQuestionCount"')) {
-    const requestedCount = Number(prompt.match(/from 0 to (\d+)/)?.[1] || 0);
-    const contentCapacity = Number(prompt.match(/QUIZ_CAPACITY_(\d+)/)?.[1]);
-    return {
-      supportedQuestionCount: Number.isInteger(contentCapacity)
-        ? Math.min(contentCapacity, requestedCount)
-        : requestedCount,
-    };
-  }
-
   if (prompt.includes('"flashcards"')) {
     return {
       flashcards: [
