@@ -1,3 +1,3 @@
-const { createPrompt } = require("../../utils/promptGenerator");
+const { createPrompt, resolveQuizCount } = require("../../utils/promptGenerator");
 
-module.exports = { createPrompt };
+module.exports = { createPrompt, resolveQuizCount };

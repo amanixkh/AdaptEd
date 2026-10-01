@@ -1,0 +1,186 @@
+import { useState, useEffect } from "react";
+import { useApp } from "../context/AppContext";
+import {demoBlocked} from '../utils/demoGuard'
+import { PageHeading } from "../components/UI";
+import { Archive, Trash2, ArchiveRestore, Search, ArrowRight, BookOpen } from "../components/Icons";
+import "../polish.css";
+import {Link} from "react-router-dom";
+
+export function ArchivePage() {
+  const { tr,lang,user,archivedLessons:archived,refreshArchive,restoreLesson,deleteForeverLesson } = useApp();
+  const [loading, setLoading] = useState(true);
+  const [busy,setBusy]=useState(false);
+  const [search, setSearch] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const locale=lang==='en'?'en-GB':lang==='ckb'?'ckb-IQ':'ar-IQ';
+  const date=value=>value?new Date(value).toLocaleDateString(locale):'—';
+  const libraryUrl=user?.role==='student'?'/app/student/library':'/app/history';
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      setLoading(true);
+      try {
+        await refreshArchive();
+      } catch (error) {
+        console.error("Error loading archived lessons:", error);
+        if (active) setToastMessage(tr("Could not load archived lessons.", "تعذّر تحميل الدروس المؤرشفة."));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const id = setTimeout(() => setToastMessage(""), 2600);
+    return () => clearTimeout(id);
+  }, [toastMessage]);
+
+  async function handleRestore(lessonId) {if(demoBlocked(user))return;
+    if(busy)return;setBusy(true);
+    try {
+      await restoreLesson(lessonId);
+      setToastMessage(tr("Lesson restored to your library.", "رجع الدرس إلى مكتبتك."));
+      setConfirmingId(null);
+    } catch (error) {
+      console.error("Error restoring lesson:", error);
+      setToastMessage(tr("Could not restore this lesson.", "تعذّر استرجاع الدرس."));
+    }finally{setBusy(false)}
+  }
+
+  async function handleDeleteForever(lessonId) {if(demoBlocked(user))return;
+    if(busy)return;setBusy(true);
+    try {
+      await deleteForeverLesson(lessonId);
+      setToastMessage(tr("Lesson deleted permanently.", "حُذف الدرس نهائياً."));
+      setConfirmingId(null);
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      setToastMessage(tr("Could not delete this lesson.", "تعذّر حذف الدرس."));
+    }finally{setBusy(false)}
+  }
+
+  const filtered = archived.filter((l) =>
+    `${l.title || l.original_name || ""} ${l.fileName || ""}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
+  );
+
+  return (
+    <div className="archive-container">
+      <section className="archive-feature"><div className="archive-feature-art" aria-hidden="true"><span><Archive size={28}/></span><i/><i/></div><div className="archive-feature-copy"><p>{user?.role==='student'?tr('YOUR STUDY LIBRARY','مكتبة تعلّمك'):tr('YOUR TEACHING LIBRARY','مكتبة دروسك')}</p><strong>{tr('Everything worth keeping, in one place.','كل دروسك المهمة بمكان واحد.')}</strong><span>{tr('Archived lessons stay here until you restore or delete them.','دروسك المؤرشفة تبقى هنا إلى أن تسترجعها أو تحذفها.')}</span></div><div className="archive-feature-count"><b>{archived.length}</b><small>{tr('Archived','مؤرشف')}</small></div></section>
+      <PageHeading
+        eyebrow={tr("MANAGE YOUR LIBRARY", "إدارة مكتبتك")}
+        title={tr("Archived Lessons", "الدروس المؤرشفة")}
+        description={tr(
+          "Restore or permanently delete archived lessons.",
+          "استعد الدروس المؤرشفة أو احذفها نهائياً."
+        )}
+      ><Link className="secondary-btn" to={libraryUrl}>{tr("Open my lessons","افتح دروسي")}<ArrowRight size={16}/></Link></PageHeading>
+
+      <div className="archive-controls"><label className="archive-search"><Search size={18}/>
+        <input
+          type="text"
+          placeholder={tr("Search archived lessons…", "ابحث في الدروس المؤرشفة…")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="search-input" aria-label={tr("Search archived lessons","البحث في الدروس المؤرشفة")}
+        /></label><span className="archive-count">{archived.length} {tr("archived lessons","دروس مؤرشفة")}</span>
+      </div>
+
+      {loading ? (
+        <div className="loading">{tr("Loading archived lessons…", "جارٍ تحميل الدروس المؤرشفة…")}</div>
+      ) : filtered.length === 0 ? (
+        <div className="empty-state">
+          <Archive size={48} />
+          <h3>{search ? tr("No results found", "لا توجد نتائج") : tr("No archived lessons", "لا توجد دروس مؤرشفة")}</h3>
+          <p>
+            {search
+              ? tr("Try adjusting your search", "حاول تعديل بحثك")
+              : tr("Archived lessons will appear here when you move them out of your library.", "إذا أرشفت درساً، راح يظهر هنا وتكدر تسترجعه بأي وقت.")}
+          </p><Link className="soft-btn" to={libraryUrl}><BookOpen size={16}/>{tr("Go to my lessons","اذهب إلى دروسي")}</Link>
+        </div>
+      ) : (
+        <div className="archive-list">
+          {filtered.map((lesson) => (
+            <div key={lesson.id} className="archive-row">
+              <div className="archive-info">
+                <h3>{lesson.title || lesson.original_name}</h3>
+                <div className="archive-meta">
+                  <span>{tr("Uploaded","رُفع")}: {date(lesson.created_at||lesson.createdAt)}</span>
+                  <span>{tr("Archived","أُرشف")}: {date(lesson.archived_at||lesson.archivedAt)}</span>
+                  <span className="pill">{lesson.generated_count ?? Object.keys(lesson.outputs||{}).length} {tr("versions","نسخ")}</span>
+                </div>
+              </div>
+
+              <div className="archive-actions">
+                {confirmingId === lesson.id ? (
+                  <div className="confirm-dialog">
+                    <p className="confirm-text">
+                      {confirmAction === "restore"
+                        ? tr("Restore this lesson to your library?","إرجاع هذا الدرس إلى مكتبتك؟")
+                        : tr("Permanently delete this lesson? This cannot be undone.","حذف هذا الدرس نهائياً؟ لا يمكن التراجع.")}
+                    </p>
+                    <div className="confirm-buttons">
+                      <button disabled={busy}
+                        onClick={() => {
+                          if (confirmAction === "restore") {
+                            handleRestore(lesson.id);
+                          } else {
+                            handleDeleteForever(lesson.id);
+                          }
+                        }}
+                        className={confirmAction === "delete" ? "soft-btn danger-btn" : "secondary-btn"}
+                      >
+                        {confirmAction === "restore" ? tr("Restore","استرجاع") : tr("Delete forever","حذف نهائي")}
+                      </button>
+                      <button disabled={busy}
+                        onClick={() => setConfirmingId(null)}
+                        className="soft-btn"
+                      >
+                        {tr("Cancel","إلغاء")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button disabled={busy}
+                      onClick={() => {
+                        setConfirmingId(lesson.id);
+                        setConfirmAction("restore");
+                      }}
+                      className="soft-btn"
+                      title={tr("Restore to active lessons","إرجاع إلى الدروس النشطة")}
+                    >
+                      <ArchiveRestore size={18} />
+                      {tr("Restore","استرجاع")}
+                    </button>
+                    <button disabled={busy}
+                      onClick={() => {
+                        setConfirmingId(lesson.id);
+                        setConfirmAction("delete");
+                      }}
+                      className="soft-btn danger-btn"
+                      title={tr("Permanently delete (cannot undo)","حذف نهائي (لا يمكن التراجع)")}
+                    >
+                      <Trash2 size={18} />
+                      {tr("Delete","حذف")}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="toast" role="status">
+          <p>{toastMessage}</p>
+        </div>
+      )}
+    </div>
+  );
+}

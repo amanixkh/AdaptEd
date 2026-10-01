@@ -15,7 +15,44 @@ pool.on("error", (error) => {
 });
 
 pool
-	.query("SELECT NOW()")
+	.query(`
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 'en';
+	`)
+	.then(() => pool.query(`
+		CREATE TABLE IF NOT EXISTS lesson_assignments (
+			id SERIAL PRIMARY KEY,
+			lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+			student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			assigned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			UNIQUE(lesson_id, student_id)
+		);
+		CREATE TABLE IF NOT EXISTS quiz_attempts (
+			id SERIAL PRIMARY KEY,
+			lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+			student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			score INTEGER NOT NULL,
+			total INTEGER NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);
+		CREATE TABLE IF NOT EXISTS chat_messages (
+			id SERIAL PRIMARY KEY,
+			user_id INT REFERENCES users(id) ON DELETE CASCADE,
+			lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE,
+			role VARCHAR(20) CHECK (role IN ('user', 'assistant')),
+			message TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE IF NOT EXISTS live_classes (
+			id SERIAL PRIMARY KEY,
+			teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			scheduled_at TIMESTAMPTZ NOT NULL,
+			meeting_url TEXT NOT NULL UNIQUE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`))
+	.then(() => pool.query("SELECT NOW()"))
 	.then((result) => {
 		console.log("PostgreSQL connected successfully!");
 		console.log("Database time:", result.rows[0].now);

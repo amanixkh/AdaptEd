@@ -5,8 +5,54 @@ const pool = require("../config/db");
 const upload = require("../middleware/upload");
 const authMiddleware = require("../middleware/authMiddleware");
 const { extractTextWithOcr } = require("../services/ocrService");
+const { computePercentage, isPassed } = require("../utils/quizScoring");
 
 const router = express.Router();
+
+function createUploadError(status, errorCode, message) {
+  const error = new Error(message);
+  error.status = status;
+  error.errorCode = errorCode;
+  return error;
+}
+
+function normalizeUploadError(error) {
+  if (error?.status && error?.errorCode) return error;
+
+  if (error?.code === "LIMIT_FILE_SIZE") {
+    return createUploadError(413, "PDF_TOO_LARGE", "The maximum file size is 20 MB.");
+  }
+
+  if (error?.code === "INVALID_FILE_TYPE") {
+    return createUploadError(400, "PDF_INVALID_TYPE", "Please choose a PDF file.");
+  }
+
+  return createUploadError(500, "PDF_UPLOAD_FAILED", "Error uploading PDF");
+}
+
+function ensureTeacher(req, res) {
+  if (req.user.role !== "teacher") {
+    res.status(403).json({ success: false, message: "Teacher access only" });
+    return false;
+  }
+  return true;
+}
+
+// Independent students manage the lessons they own themselves, so the lesson
+// CRUD routes below accept both roles. Ownership is still enforced by the
+// `user_id = $n` filter inside every query, so a lesson can only ever be read
+// or changed by the authenticated owner.
+function ensureLessonAccess(req, res) {
+  const role = req.user?.role;
+  if (role !== "teacher" && role !== "student") {
+    res.status(403).json({
+      success: false,
+      message: "Lesson access is limited to teachers and students",
+    });
+    return false;
+  }
+  return true;
+}
 
 function cleanExtractedText(text) {
   return text
@@ -21,66 +67,145 @@ function cleanExtractedText(text) {
 
 function hasUsableExtractedText(text) {
   const cleanedText = cleanExtractedText(text || "");
-  return cleanedText.replace(/\s/g, "").length >= 20;
+  if (cleanedText.replace(/\s/g, "").length < 20) return false;
+  return !looksLikeMojibake(cleanedText);
 }
 
-router.post("/upload", authMiddleware, upload.single("pdf"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No PDF file uploaded" });
-    }
+function looksLikeMojibake(text) {
+  const mojibakeMarkerPattern = /[ÃÂ][\u0080-\u00BF]|Ø[\u0080-\u00BF]|Ù[\u0080-\u00BF]|�/g;
+  const matches = text.match(mojibakeMarkerPattern) || [];
+  return matches.length / Math.max(text.length, 1) > 0.02;
+}
 
-    const selectedLanguage = req.body.language || req.body.lang || req.body.lessonLanguage;
-    const dataBuffer = fs.readFileSync(req.file.path);
-    const parser = new PDFParse({ data: dataBuffer });
-    const data = await parser.getText();
-    let extractedText = cleanExtractedText(data.text);
+function isEncryptedPdfError(error) {
+  const text = `${error?.message || ""}`.toLowerCase();
+  return text.includes("password") || text.includes("encrypted");
+}
 
-    if (!hasUsableExtractedText(extractedText)) {
-      console.warn("[PDF] pdf-parse returned empty or invalid text; switching to OCR", {
-        file: req.file.originalname,
-        language: selectedLanguage || "en",
-        extractedCharacters: extractedText.length,
+router.post("/upload", authMiddleware, (req, res, next) => {
+  if (!ensureLessonAccess(req, res)) return;
+  next();
+}, (req, res) => {
+  upload.single("pdf")(req, res, async (uploadError) => {
+    if (uploadError) {
+      const normalizedError = normalizeUploadError(uploadError);
+      return res.status(normalizedError.status).json({
+        success: false,
+        message: normalizedError.message,
+        errorCode: normalizedError.errorCode,
       });
-      extractedText = await extractTextWithOcr(req.file.path, selectedLanguage);
     }
 
-    const result = await pool.query(
-      `INSERT INTO lessons
-       (user_id, title, original_name, file_size, file_path, extracted_text)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [
-        req.user.id,
-        req.file.originalname,
-        req.file.originalname,
-        req.file.size,
-        req.file.path,
-        extractedText,
-      ]
-    );
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No PDF file uploaded",
+          errorCode: "PDF_MISSING",
+        });
+      }
 
-    return res.status(200).json({
-      success: true,
-      message: "PDF uploaded and saved successfully",
-      lesson: result.rows[0],
-    });
-  } catch (error) {
-    console.error("PDF Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error uploading PDF",
-      error: error.message,
-    });
-  }
+      const selectedLanguage = String(req.body.language || req.body.lang || req.body.lessonLanguage || "en").toLowerCase();
+      const lessonLanguage = ["en", "ar", "ckb"].includes(selectedLanguage) ? selectedLanguage : "en";
+      const dataBuffer = fs.readFileSync(req.file.path);
+      let extractedText = "";
+
+      try {
+        const parser = new PDFParse({ data: dataBuffer });
+        try {
+          const data = await parser.getText();
+          extractedText = cleanExtractedText(data.text);
+        } finally {
+          if (parser.destroy) await parser.destroy();
+        }
+      } catch (parseError) {
+        if (isEncryptedPdfError(parseError)) {
+          throw createUploadError(
+            422,
+            "PDF_ENCRYPTED",
+            "This PDF is password protected. Please upload an unprotected PDF."
+          );
+        }
+
+        console.warn("[PDF] Text extraction failed; OCR fallback will be attempted", {
+          file: req.file.originalname,
+          error: parseError.message,
+        });
+      }
+
+      if (!hasUsableExtractedText(extractedText)) {
+        console.warn("[PDF] pdf-parse returned empty or invalid text; switching to OCR", {
+          file: req.file.originalname,
+          language: lessonLanguage,
+          extractedCharacters: extractedText.length,
+        });
+
+        try {
+          extractedText = await extractTextWithOcr(req.file.path, selectedLanguage);
+        } catch (ocrError) {
+          console.error("[PDF] OCR fallback failed", {
+            file: req.file.originalname,
+            language: lessonLanguage,
+            error: ocrError.message,
+          });
+          throw createUploadError(
+            422,
+            "PDF_OCR_FAILED",
+            "Could not process this PDF with OCR. Try a clearer scan or a text-based PDF."
+          );
+        }
+      }
+
+      if (!hasUsableExtractedText(extractedText)) {
+        throw createUploadError(
+          422,
+          "PDF_UNREADABLE",
+          "Could not extract readable text from this PDF. Try a text-based PDF or a clearer scan."
+        );
+      }
+
+      const lessonTitle = String(req.body.title || "").trim() || req.file.originalname;
+
+      const result = await pool.query(
+        `INSERT INTO lessons
+         (user_id, title, original_name, file_size, file_path, extracted_text, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [
+          req.user.id,
+          lessonTitle,
+          req.file.originalname,
+          req.file.size,
+          req.file.path,
+          extractedText,
+          lessonLanguage,
+        ]
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "PDF uploaded and saved successfully",
+        lesson: result.rows[0],
+      });
+    } catch (error) {
+      const normalizedError = normalizeUploadError(error);
+      console.error("PDF Error:", error);
+      return res.status(normalizedError.status).json({
+        success: false,
+        message: normalizedError.message,
+        errorCode: normalizedError.errorCode,
+      });
+    }
+  });
 });
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
+    if (!ensureLessonAccess(req, res)) return;
     const result = await pool.query(
       `SELECT id, title, file_path, created_at
        FROM lessons
-       WHERE user_id = $1
+       WHERE user_id = $1 AND archived_at IS NULL
        ORDER BY created_at DESC`,
       [req.user.id]
     );
@@ -98,13 +223,91 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+router.get("/archived/list", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+
+    const result = await pool.query(
+      `SELECT l.id, l.title, l.original_name, l.file_path, l.created_at, l.archived_at, l.language,
+              COUNT(gc.id)::int AS generated_count
+       FROM lessons l
+       LEFT JOIN generated_content gc ON gc.lesson_id = l.id
+       WHERE l.user_id = $1 AND l.archived_at IS NOT NULL
+       GROUP BY l.id
+       ORDER BY l.archived_at DESC`,
+      [req.user.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      lessons: result.rows,
+    });
+  } catch (error) {
+    console.error("Get archived lessons error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.get("/students", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureTeacher(req, res)) return;
+
+    const result = await pool.query(
+      `SELECT id, name, email FROM users WHERE role = 'student' ORDER BY name ASC`
+    );
+
+    return res.status(200).json({
+      success: true,
+      students: result.rows,
+    });
+  } catch (error) {
+    console.error("Get students error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.get("/:id/file", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+    const result = await pool.query(
+      `SELECT file_path FROM lessons l
+       WHERE l.id = $1 AND l.archived_at IS NULL
+         AND (
+           l.user_id = $2
+           OR EXISTS (
+             SELECT 1 FROM lesson_assignments la
+             WHERE la.lesson_id = l.id AND la.student_id = $2
+           )
+         )`,
+      [req.params.id, req.user.id]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].file_path || !fs.existsSync(result.rows[0].file_path)) {
+      return res.status(404).json({ success: false, message: "Lesson file not found" });
+    }
+
+    return res.sendFile(result.rows[0].file_path);
+  } catch (error) {
+    console.error("Get lesson file error:", error);
+    return res.status(500).json({ success: false, message: "Could not retrieve lesson file" });
+  }
+});
+
+// Dynamic /:id routes
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
     const lessonResult = await pool.query(
-      `SELECT id, user_id, title, file_path, extracted_text, created_at
+      `SELECT id, user_id, title, original_name, file_size, file_path, extracted_text, language, created_at
        FROM lessons
-       WHERE id = $1 AND user_id = $2`,
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NULL`,
       [lessonId, req.user.id]
     );
 
@@ -137,17 +340,126 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-router.delete("/:id", authMiddleware, async (req, res) => {
-  const client = await pool.connect();
-
+// Edits the lesson record itself (title and/or OCR'd text). Ownership is part of
+// the UPDATE statement, so another user's lesson can never be modified.
+router.patch("/:id", authMiddleware, async (req, res) => {
   try {
+    if (!ensureLessonAccess(req, res)) return;
+    const { id: lessonId } = req.params;
+    const { title, extractedText } = req.body || {};
+
+    const updates = [];
+    const values = [lessonId, req.user.id];
+
+    if (title !== undefined) {
+      const cleanTitle = String(title).trim();
+      if (!cleanTitle || cleanTitle.length > 200) {
+        return res.status(400).json({
+          success: false,
+          message: "Title must be between 1 and 200 characters",
+        });
+      }
+      values.push(cleanTitle);
+      updates.push(`title = $${values.length}`);
+    }
+
+    if (extractedText !== undefined) {
+      if (typeof extractedText !== "string" || !extractedText.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "extractedText must be a non-empty string",
+        });
+      }
+      values.push(extractedText);
+      updates.push(`extracted_text = $${values.length}`);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nothing to update: provide a title or extractedText",
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE lessons SET ${updates.join(", ")}
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NULL
+       RETURNING id, user_id, title, original_name, file_path, extracted_text, created_at`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson updated successfully",
+      lesson: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Update lesson error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.patch("/:id/restore", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+    const { id: lessonId } = req.params;
+
+    const result = await pool.query(
+      `UPDATE lessons SET archived_at = NULL
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NOT NULL
+       RETURNING id, title, original_name, file_path, extracted_text, created_at`,
+      [lessonId, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Archived lesson not found",
+      });
+    }
+
+    const contentResult = await pool.query(
+      `SELECT id, content_type, content, created_at
+       FROM generated_content
+       WHERE lesson_id = $1
+       ORDER BY created_at DESC`,
+      [lessonId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson restored successfully",
+      lesson: result.rows[0],
+      generatedContent: contentResult.rows,
+    });
+  } catch (error) {
+    console.error("Restore lesson error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.delete("/:id/permanent", authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!ensureLessonAccess(req, res)) return;
     const { id: lessonId } = req.params;
     await client.query("BEGIN");
 
     const lessonResult = await client.query(
-      `SELECT id
-       FROM lessons
-       WHERE id = $1 AND user_id = $2`,
+      `SELECT id FROM lessons WHERE id = $1 AND user_id = $2 AND archived_at IS NOT NULL`,
       [lessonId, req.user.id]
     );
 
@@ -155,12 +467,20 @@ router.delete("/:id", authMiddleware, async (req, res) => {
       await client.query("ROLLBACK");
       return res.status(404).json({
         success: false,
-        message: "Lesson not found",
+        message: "Archived lesson not found",
       });
     }
 
     await client.query(
       "DELETE FROM generated_content WHERE lesson_id = $1",
+      [lessonId]
+    );
+    await client.query(
+      "DELETE FROM lesson_assignments WHERE lesson_id = $1",
+      [lessonId]
+    );
+    await client.query(
+      "DELETE FROM quiz_attempts WHERE lesson_id = $1",
       [lessonId]
     );
     await client.query(
@@ -171,17 +491,169 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Lesson deleted successfully",
+      message: "Lesson permanently deleted",
     });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Delete lesson error:", error);
+    console.error("Delete archived lesson error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
     });
   } finally {
     client.release();
+  }
+});
+
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+    const { id: lessonId } = req.params;
+
+    // Ownership is checked inside the UPDATE so an already-archived or foreign
+    // lesson is never touched.
+    const lessonResult = await pool.query(
+      `UPDATE lessons SET archived_at = NOW()
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NULL
+       RETURNING id`,
+      [lessonId, req.user.id]
+    );
+
+    if (lessonResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson archived successfully",
+    });
+  } catch (error) {
+    console.error("Archive lesson error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.post("/:id/share", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureTeacher(req, res)) return;
+    const { id: lessonId } = req.params;
+    const { studentIds } = req.body || {};
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "studentIds must be a non-empty array",
+      });
+    }
+
+    const lessonResult = await pool.query(
+      `SELECT id FROM lessons WHERE id = $1 AND user_id = $2`,
+      [lessonId, req.user.id]
+    );
+
+    if (lessonResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const validStudents = await pool.query(
+      `SELECT id FROM users WHERE id = ANY($1::int[]) AND role = 'student'`,
+      [studentIds]
+    );
+
+    if (validStudents.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid student IDs were provided",
+      });
+    }
+
+    const validIds = validStudents.rows.map((row) => row.id);
+    const inserted = await pool.query(
+      `INSERT INTO lesson_assignments (lesson_id, student_id)
+       SELECT $1, unnest($2::int[])
+       ON CONFLICT (lesson_id, student_id) DO NOTHING
+       RETURNING student_id`,
+      [lessonId, validIds]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson shared successfully",
+      sharedWith: validIds,
+      newlyShared: inserted.rows.map((row) => row.student_id),
+    });
+  } catch (error) {
+    console.error("Share lesson error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.get("/:id/quiz-attempts", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureLessonAccess(req, res)) return;
+    const { id: lessonId } = req.params;
+
+    const lessonResult = await pool.query(
+      `SELECT id FROM lessons WHERE id = $1 AND user_id = $2`,
+      [lessonId, req.user.id]
+    );
+
+    if (lessonResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT qa.id, qa.student_id, u.name AS student_name, u.email AS student_email,
+              qa.score, qa.total, qa.created_at,
+              ROW_NUMBER() OVER (PARTITION BY qa.student_id ORDER BY qa.created_at ASC) AS attempt_number
+       FROM quiz_attempts qa
+       JOIN users u ON u.id = qa.student_id
+       WHERE qa.lesson_id = $1
+       ORDER BY u.name ASC, qa.created_at ASC`,
+      [lessonId]
+    );
+
+    const attempts = result.rows.map((row) => {
+      const percentage = computePercentage(row.score, row.total);
+      return {
+        id: row.id,
+        studentId: row.student_id,
+        studentName: row.student_name,
+        studentEmail: row.student_email,
+        attemptNumber: Number(row.attempt_number),
+        score: row.score,
+        total: row.total,
+        percentage,
+        passed: isPassed(percentage),
+        createdAt: row.created_at,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      attempts,
+    });
+  } catch (error) {
+    console.error("Get lesson quiz attempts error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 
