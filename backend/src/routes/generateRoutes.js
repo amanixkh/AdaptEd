@@ -4,7 +4,10 @@ const router = express.Router();
 const pool = require("../config/db");
 const authMiddleware = require("../middleware/authMiddleware");
 const { regenerate } = require("../controllers/regenerateController");
-const { generateAndSaveFeature } = require("../services/contentGenerationService");
+const {
+    generateAndSaveFeature,
+    QuizContentTooShortError,
+} = require("../services/contentGenerationService");
 
 // Only these feature names are ever generated/saved; anything else is ignored.
 const ALLOWED_FEATURES = ["summary", "quiz", "flashcards"];
@@ -148,13 +151,15 @@ router.post("/", authMiddleware, async (req, res) => {
         const generated = [];
         const failed = [];
         const failureErrors = [];
+        const featureMessages = [];
+        const results = [];
 
         // 4- Generate + persist content, one row per requested feature. A failure
         // on one feature (prompt/AI/DB) is recorded in `failed` and does NOT stop
         // the remaining features from being generated.
         for (const feature of featuresToGenerate) {
             try {
-                await generateAndSaveFeature({
+                const result = await generateAndSaveFeature({
                     lessonId,
                     feature,
                     profile: profileWithQuestionCount,
@@ -162,10 +167,19 @@ router.post("/", authMiddleware, async (req, res) => {
                     mode: requestMode,
                 });
                 generated.push({ type: feature, status: "completed" });
+                results.push({
+                    type: feature,
+                    status: "completed",
+                    generatedContentId: result.generatedContentId,
+                    content: result.content,
+                });
+                if (result.message) featureMessages.push(result.message);
             } catch (error) {
                 console.error(`[AI] ${feature} failed:`, error.message);
                 failed.push(feature);
                 failureErrors.push(error);
+                results.push({ type: feature, status: "failed", error: error.message });
+                if (error instanceof QuizContentTooShortError) featureMessages.push(error.message);
             }
         }
 
@@ -173,14 +187,20 @@ router.post("/", authMiddleware, async (req, res) => {
             const providersUnavailable = failureErrors.every(
                 (error) => error.name === "AIProviderError"
             );
+            const quizContentTooShort = failureErrors.some(
+                (error) => error instanceof QuizContentTooShortError
+            );
 
-            return res.status(providersUnavailable ? 503 : 500).json({
+            return res.status(quizContentTooShort ? 422 : providersUnavailable ? 503 : 500).json({
                 success: false,
-                message: providersUnavailable
+                message: quizContentTooShort
+                    ? failureErrors.find((error) => error instanceof QuizContentTooShortError).message
+                    : providersUnavailable
                     ? "AI service is temporarily unavailable. Please try again later."
                     : "Content generation failed.",
                 generated,
                 failed,
+                results,
             });
         }
 
@@ -188,6 +208,8 @@ router.post("/", authMiddleware, async (req, res) => {
             success: true,
             generated,
             failed,
+            results,
+            ...(featureMessages.length ? { message: featureMessages.join(" ") } : {}),
         });
 
     } catch (error) {

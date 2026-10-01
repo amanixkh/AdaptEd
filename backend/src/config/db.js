@@ -8,6 +8,7 @@ const pool = new Pool({
 	user: process.env.DB_USER,
 	password: process.env.DB_PASSWORD,
 	ssl: false,
+	connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS) || 15000,
 });
 
 pool.on("error", (error) => {

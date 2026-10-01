@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Video,CalendarClock,Copy,Check,ExternalLink,Plus,Loader2,AlertCircle} from 'lucide-react'
 import {useApp} from '../context/AppContext'
@@ -19,6 +19,8 @@ const localNow=()=>{const d=new Date(Date.now()+15*60000);d.setSeconds(0,0);retu
 export function LiveClassCreate(){
  const{tr,lang,user}=useApp()
  const[room,setRoom]=useState(null),[title,setTitle]=useState(''),[startsAt,setStartsAt]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[created,setCreated]=useState(null),[copied,setCopied]=useState(false)
+ const copiedTimer=useRef(null)
+ useEffect(()=>()=>clearTimeout(copiedTimer.current),[])
  async function create(e){
   e.preventDefault();setError('')
   if(!title.trim()){setError(tr('Add a title for the class.','أضف عنواناً للصف.'));return}
@@ -30,7 +32,7 @@ export function LiveClassCreate(){
   catch{setError(tr('Could not create the class. Please try again.','تعذّر إنشاء الصف. حاول مجدداً.'))}
   finally{setBusy(false)}
  }
- async function copy(){try{await navigator.clipboard.writeText(created.meetingUrl);setCopied(true);setTimeout(()=>setCopied(false),1800)}catch{void 0}}
+ async function copy(){try{await navigator.clipboard.writeText(created.meetingUrl);setCopied(true);clearTimeout(copiedTimer.current);copiedTimer.current=setTimeout(()=>setCopied(false),1800)}catch{void 0}}
  const w=created&&when(created.scheduledAt,tr,lang)
  return <section className="panel live-card" aria-labelledby="live-create-title">
   <div className="section-heading"><h2 id="live-create-title"><span className="live-icon" aria-hidden="true"><Video size={18}/></span>{created?tr('Live class created','تم إنشاء الصف المباشر'):tr('Live Classes','الصفوف المباشرة')}</h2>{created?<span className="pill live-ok"><Check size={13}/>{tr('Ready','جاهز')}</span>:<Link className="live-all" to="/app/live">{tr('All live classes','كل الصفوف المباشرة')} →</Link>}</div>

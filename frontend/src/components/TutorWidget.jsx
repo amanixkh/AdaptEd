@@ -23,8 +23,10 @@ export default function TutorWidget(){
  useEffect(()=>{if(!open)return;const onKey=e=>{if(e.key==='Escape')setOpen(false)};document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey)},[open])
  useEffect(()=>{
   const el=panel.current;if(!el)return
-  if(open){el.hidden=false;if(!calm())gsap.fromTo(el,{opacity:0,y:24,scale:.94},{opacity:1,y:0,scale:1,duration:.42,ease:'back.out(1.7)'});setTimeout(()=>el.querySelector('textarea')?.focus(),60)}
-  else if(!el.hidden){if(calm()){el.hidden=true;return}gsap.to(el,{opacity:0,y:16,scale:.96,duration:.22,ease:'power2.in',onComplete:()=>{el.hidden=true}})}
+    let focusTimer;let tween
+    if(open){el.hidden=false;if(!calm())tween=gsap.fromTo(el,{opacity:0,y:24,scale:.94},{opacity:1,y:0,scale:1,duration:.42,ease:'back.out(1.7)'});focusTimer=setTimeout(()=>el.querySelector('textarea')?.focus(),60)}
+    else if(!el.hidden){if(calm())el.hidden=true;else tween=gsap.to(el,{opacity:0,y:16,scale:.96,duration:.22,ease:'power2.in',onComplete:()=>{el.hidden=true}})}
+    return()=>{clearTimeout(focusTimer);tween?.kill()}
  },[open])
  useEffect(()=>{
   if(!fab.current||calm())return

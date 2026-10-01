@@ -48,7 +48,9 @@ function LiveHero({eyebrow,title,sub,children}){
 
 function ClassRow({c,now,lang,tr,onJoin,onCancel,teacher}){
  const st=stateOf(c,now),p=dateParts(c.scheduledAt,lang),[copied,setCopied]=useState(false),[confirm,setConfirm]=useState(false)
- async function copy(){try{await navigator.clipboard.writeText(c.meetingUrl);setCopied(true);setTimeout(()=>setCopied(false),1600)}catch{void 0}}
+ const copiedTimer=useRef(null)
+ useEffect(()=>()=>clearTimeout(copiedTimer.current),[])
+ async function copy(){try{await navigator.clipboard.writeText(c.meetingUrl);setCopied(true);clearTimeout(copiedTimer.current);copiedTimer.current=setTimeout(()=>setCopied(false),1600)}catch{void 0}}
  return <li className={`lv-row is-${st}`}>
   <div className="lv-date"><strong>{p.day}</strong><span>{p.month}</span></div>
   <div className="lv-info"><strong dir="auto">{c.title}</strong><small><Clock size={13}/>{p.weekday} · {p.time}</small><span className={`lv-badge is-${st}`}>{st==='live'&&<span className="live-dot" aria-hidden="true"/>}{st==='ended'?tr('Ended','انتهى'):countdown(c,now,tr)}</span></div>
