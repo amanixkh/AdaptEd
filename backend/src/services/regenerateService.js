@@ -1,5 +1,5 @@
 const pool = require("../config/db");
-const { generateAndSaveFeature } = require("./contentGenerationService");
+const { generateAndSaveFeature, QuizGenerationError } = require("./contentGenerationService");
 const { normalizeMode, CANONICAL_MODES, MODE_DEFAULT } = require("../utils/modeUtils");
 
 const VALID_FEATURES = new Set(["summary", "quiz", "flashcards", "simplified"]);
@@ -60,7 +60,7 @@ async function regenerateContent({ lessonId, mode, features, quizCount }) {
 
     const databaseStartedAt = Date.now();
     const lessonResult = await pool.query(
-        "SELECT extracted_text FROM lessons WHERE id = $1",
+        "SELECT extracted_text, language FROM lessons WHERE id = $1",
         [Number(lessonId)]
     );
     const databaseMs = Date.now() - databaseStartedAt;
@@ -77,6 +77,9 @@ async function regenerateContent({ lessonId, mode, features, quizCount }) {
 
     const text = lessonResult.rows[0].extracted_text;
     if (typeof text !== "string" || !text.trim()) {
+        if (normalizedFeatures.includes("quiz")) {
+            throw new QuizGenerationError(lessonResult.rows[0].language);
+        }
         throw new RegenerationError("No extracted text found for this lesson", 404);
     }
 
@@ -92,7 +95,9 @@ async function regenerateContent({ lessonId, mode, features, quizCount }) {
         generated.push(await generateAndSaveFeature({
             lessonId: Number(lessonId),
             feature,
-            profile,
+            profile: feature === "quiz"
+                ? { ...profile, language: lessonResult.rows[0].language }
+                : profile,
             text,
             mode: normalizedMode,
         }));

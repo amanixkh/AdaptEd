@@ -1,10 +1,25 @@
 const fs = require("fs");
 const pool = require("../config/db");
 const { transcribeVideo, joinTranscriptText } = require("../services/videoSpeechToTextService");
-const { generateAndSaveFeature } = require("../services/contentGenerationService");
+const {
+  generateAndSaveFeature,
+  QuizGenerationError,
+  getQuizGenerationErrorMessage,
+} = require("../services/contentGenerationService");
 const { generateWebVtt, translateSubtitleSegments, SUBTITLE_LANGUAGES } = require("../services/subtitleService");
 
 const VIDEO_FEATURES = ["summary", "quiz", "flashcards"];
+const DEFAULT_QUESTION_COUNT = 10;
+const MIN_QUESTION_COUNT = 5;
+const MAX_QUESTION_COUNT = 15;
+
+function resolveQuestionCount(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < MIN_QUESTION_COUNT || parsed > MAX_QUESTION_COUNT) {
+    return DEFAULT_QUESTION_COUNT;
+  }
+  return parsed;
+}
 
 function readFormArray(value, fallback = []) {
   if (Array.isArray(value)) return value;
@@ -30,6 +45,8 @@ async function uploadVideo(req, res) {
     ? String(req.body.language).toLowerCase()
     : "en";
   const title = String(req.body?.title || "").trim() || req.file.originalname;
+  const requestedFeatures = readFormArray(req.body?.features, ["summary"]);
+  const quizRequested = requestedFeatures.includes("quiz");
   let extractedText;
   let transcriptSegments;
   let sourceLanguage = null;
@@ -45,7 +62,9 @@ async function uploadVideo(req, res) {
       return res.status(422).json({
         success: false,
         errorCode: "VIDEO_NO_SPEECH",
-        message: "No speech could be transcribed from this video.",
+        message: quizRequested
+          ? getQuizGenerationErrorMessage(language)
+          : "No speech could be transcribed from this video.",
       });
     }
   } catch (error) {
@@ -60,7 +79,9 @@ async function uploadVideo(req, res) {
         ? "VIDEO_AUDIO_TOO_LARGE"
         : "VIDEO_TRANSCRIPTION_FAILED";
     const message = noReadableAudio
-      ? "Could not extract readable audio. Make sure the video contains an audio track."
+      ? quizRequested
+        ? getQuizGenerationErrorMessage(language)
+        : "Could not extract readable audio. Make sure the video contains an audio track."
       : tooLarge
         ? "The extracted audio exceeds the speech transcription size limit."
         : "Speech transcription is temporarily unavailable. Please try again.";
@@ -92,7 +113,6 @@ async function uploadVideo(req, res) {
       }
     }
 
-    const requestedFeatures = readFormArray(req.body?.features, ["summary"]);
     const features = [...new Set(requestedFeatures)].filter((feature) => VIDEO_FEATURES.includes(feature));
     const needs = readFormArray(req.body?.needs).filter((need) => typeof need === "string");
     const levels = ["beginner", "intermediate", "advanced"];
@@ -100,9 +120,11 @@ async function uploadVideo(req, res) {
       language,
       level: levels.includes(req.body?.level) ? req.body.level : "beginner",
       needs,
+      quizCount: resolveQuestionCount(req.body?.questionCount),
     };
     const generated = [];
     const failed = [];
+    let quizGenerationError;
 
     for (const feature of features.length ? features : ["summary"]) {
       try {
@@ -116,6 +138,7 @@ async function uploadVideo(req, res) {
       } catch (error) {
         console.error(`[VIDEO AI] ${feature} generation failed for lesson ${lesson.id}:`, error);
         failed.push(feature);
+        if (error instanceof QuizGenerationError) quizGenerationError = error;
       }
     }
 
@@ -129,9 +152,9 @@ async function uploadVideo(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: failed.length
+      message: quizGenerationError?.message || (failed.length
         ? "Video lesson created, but some content could not be generated"
-        : "Video lesson created successfully",
+        : "Video lesson created successfully"),
       lesson,
       generated,
       failed,
