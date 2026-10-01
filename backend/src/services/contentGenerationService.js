@@ -5,6 +5,7 @@ const { generate } = require("./ai/generateService");
 const MAX_DIRECT_TEXT_CHARS = Number(process.env.AI_MAX_DIRECT_TEXT_CHARS) || 30000;
 const CHUNK_SIZE_CHARS = Number(process.env.AI_CHUNK_SIZE_CHARS) || 12000;
 const MIN_QUIZ_QUESTIONS = 5;
+const GENERATED_CONTENT_QUERY_TIMEOUT_MS = Number(process.env.GENERATED_CONTENT_QUERY_TIMEOUT_MS) || 30000;
 
 class QuizContentTooShortError extends Error {
     constructor() {
@@ -112,8 +113,8 @@ function validateFeatureResponse(feature, text, { quizCount } = {}) {
 
     if (feature === "quiz") {
         const expectedCount = Number.isInteger(quizCount) ? quizCount : resolveQuizCount();
-        if (data.quiz.length !== 0 && data.quiz.length !== expectedCount) {
-            throw new Error(`quiz must contain exactly ${expectedCount} questions or be empty`);
+        if (data.quiz.length < MIN_QUIZ_QUESTIONS || data.quiz.length > expectedCount) {
+            throw new Error(`quiz must contain between ${MIN_QUIZ_QUESTIONS} and ${expectedCount} questions`);
         }
 
         const questions = new Set();
@@ -289,12 +290,13 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
 
     console.log(`[DB] Saving regenerated ${feature} for lesson ${lessonId}`);
     const databaseStartedAt = Date.now();
-    const result = await pool.query(
-        `INSERT INTO generated_content (lesson_id, content_type, content)
-         VALUES ($1, $2, $3)
-         RETURNING id`,
-        [lessonId, feature, content]
-    );
+    const result = await pool.query({
+        text: `INSERT INTO generated_content (lesson_id, content_type, content)
+               VALUES ($1, $2, $3)
+               RETURNING id`,
+        values: [lessonId, feature, content],
+        query_timeout: GENERATED_CONTENT_QUERY_TIMEOUT_MS,
+    });
     const databaseMs = Date.now() - databaseStartedAt;
 
     const generatedContentId = result.rows[0].id;
@@ -314,8 +316,8 @@ async function generateAndSaveFeature({ lessonId, feature, profile, text, mode }
     });
 
     const generatedFeature = { generatedContentId, feature, content: data[feature] };
-    if (feature === "quiz" && supportedQuizCount < requestedQuizCount) {
-        generatedFeature.message = `The uploaded content does not contain enough information to generate the requested number of questions. Only ${supportedQuizCount} high-quality questions were generated to maintain accuracy.`;
+    if (feature === "quiz" && data.quiz.length < requestedQuizCount) {
+        generatedFeature.message = `The uploaded content does not contain enough information to generate the requested number of questions. Only ${data.quiz.length} high-quality questions were generated to maintain accuracy.`;
     }
     return generatedFeature;
 }
