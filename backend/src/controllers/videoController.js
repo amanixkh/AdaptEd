@@ -1,10 +1,7 @@
 const fs = require("fs");
 const pool = require("../config/db");
 const { transcribeVideo, joinTranscriptText } = require("../services/videoSpeechToTextService");
-const {
-  generateAndSaveFeature,
-  QuizContentTooShortError,
-} = require("../services/contentGenerationService");
+const { generateAndSaveFeature } = require("../services/contentGenerationService");
 const { generateWebVtt, translateSubtitleSegments, SUBTITLE_LANGUAGES } = require("../services/subtitleService");
 
 const VIDEO_FEATURES = ["summary", "quiz", "flashcards"];
@@ -106,22 +103,19 @@ async function uploadVideo(req, res) {
     };
     const generated = [];
     const failed = [];
-    const generationMessages = [];
 
     for (const feature of features.length ? features : ["summary"]) {
       try {
-        const result = await generateAndSaveFeature({
+        await generateAndSaveFeature({
           lessonId: lesson.id,
           feature,
           profile,
           text: extractedText,
         });
         generated.push(feature);
-        if (result.message) generationMessages.push(result.message);
       } catch (error) {
         console.error(`[VIDEO AI] ${feature} generation failed for lesson ${lesson.id}:`, error);
         failed.push(feature);
-        if (error instanceof QuizContentTooShortError) generationMessages.push(error.message);
       }
     }
 
@@ -135,9 +129,9 @@ async function uploadVideo(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: `${failed.length
+      message: failed.length
         ? "Video lesson created, but some content could not be generated"
-        : "Video lesson created successfully"}${generationMessages.length ? `. ${generationMessages.join(" ")}` : ""}`,
+        : "Video lesson created successfully",
       lesson,
       generated,
       failed,

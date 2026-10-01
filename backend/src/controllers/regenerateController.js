@@ -1,5 +1,4 @@
 const { regenerateContent, RegenerationError } = require("../services/regenerateService");
-const { QuizContentTooShortError } = require("../services/contentGenerationService");
 const { isRetryableProviderError } = require("../services/ai/generateService");
 
 async function regenerate(req, res) {
@@ -31,16 +30,9 @@ async function regenerate(req, res) {
         return res.status(201).json({
             success: true,
             ...result,
-            message: result.message || "Content regenerated successfully.",
+            message: "Content regenerated successfully.",
         });
     } catch (error) {
-        if (error instanceof QuizContentTooShortError) {
-            return res.status(error.statusCode).json({
-                success: false,
-                message: error.message,
-            });
-        }
-
         if (error instanceof RegenerationError) {
             return res.status(error.statusCode).json({
                 success: false,
