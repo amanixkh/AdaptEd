@@ -12,7 +12,7 @@ const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 export default function Notifications(){
  const{user,tr,lang,lessons}=useApp()
- const[open,setOpen]=useState(false),[mode,setMode]=useState(DEMO?'local':'checking'),[serverItems,setServerItems]=useState([]),[serverUnread,setServerUnread]=useState(0),[loadedAt,setLoadedAt]=useState(0)
+ const[open,setOpen]=useState(false),[mode,setMode]=useState(DEMO?'local':'server'),[serverItems,setServerItems]=useState([]),[serverUnread,setServerUnread]=useState(0),[loadedAt,setLoadedAt]=useState(0)
  const[shared,setShared]=useState([]),[failed,setFailed]=useState(false),[loading,setLoading]=useState(false)
  const[read,setRead]=useState(()=>{try{return JSON.parse(localStorage.getItem(`adapted-read-${user.id||user.name}`))||[]}catch{return[]}})
  const ref=useRef(null),bell=useRef(null),panel=useRef(null),lastUnread=useRef(0)
@@ -28,7 +28,7 @@ export default function Notifications(){
  useEffect(()=>{
   if(DEMO)return
   let active=true
-  function poll(){api.unreadNotifications().then(n=>{if(!active)return;setMode('server');setServerUnread(n)}).catch(()=>{if(active)setMode(m=>m==='server'?'server':'local')})}
+  function poll(){api.unreadNotifications().then(n=>{if(!active)return;setMode('server');setServerUnread(n)}).catch(()=>{})}
   poll()
   const timer=setInterval(()=>{if(document.visibilityState==='visible')poll()},60000)
   return()=>{active=false;clearInterval(timer)}
@@ -42,7 +42,7 @@ export default function Notifications(){
   if(mode==='server'){setLoading(true);setFailed(false);api.notifications().then(rows=>{if(active){setLoadedAt(Date.now());setServerItems(rows);setServerUnread(rows.filter(r=>!r.is_read).length)}}).catch(()=>{if(active)setFailed(true)}).finally(()=>{if(active)setLoading(false)})}
   else if(mode==='local'&&user.role==='student'){setLoading(true);setFailed(false);api.studentLessons().then(rows=>{if(active)setShared(rows)}).catch(()=>{if(active)setFailed(true)}).finally(()=>{if(active)setLoading(false)})}
   return()=>{active=false}
- },[open,mode,user.role])
+ },[open,mode,user.role,serverUnread])
 
  useEffect(()=>{if(!open||!panel.current||calm())return;const t=gsap.fromTo(panel.current,{y:-8,scale:.97,opacity:0},{y:0,scale:1,opacity:1,duration:.3,ease:'power2.out',clearProps:'transform,opacity'});return()=>t.kill()},[open])
 
