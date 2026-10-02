@@ -61,6 +61,11 @@ app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");
 });
 
+// Notifications are produced by scheduled jobs (new-lesson reconciliation,
+// score improvement, learning streak and inactivity reminders). Start the
+// scheduler so those jobs actually run while the app is running.
+startNotificationJobs();
+
 const PORT = process.env.PORT || 5000;
 const HOST = "localhost";
 
