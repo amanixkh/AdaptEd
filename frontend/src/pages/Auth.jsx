@@ -6,6 +6,7 @@ import {gsap} from 'gsap'
 import {Brand,Language,ErrorBox,Busy} from '../components/UI'
 import {useApp} from '../context/AppContext'
 import {api,DEMO} from '../services/api'
+import {homePath,loginDestination} from '../utils/paths'
 
 const calm=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches&&!document.documentElement.classList.contains('force-motion')
 const Words=({text})=>String(text).split(' ').flatMap((w,i,a)=>[<span className="hw" key={i}><span>{w}</span></span>,i<a.length-1?' ':null])
@@ -15,8 +16,8 @@ export default function Auth({register=false}){
  const {tr,rtl,user,setUser,demoLogin}=useApp(),navigate=useNavigate(),location=useLocation()
  const[show,setShow]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState(''),[pw,setPw]=useState('')
  const root=useRef(null),panelRef=useRef(null)
- const destination=(location.state?.from?.startsWith('/app')||location.state?.from==='/contact')?location.state.from:'/app'
- async function submit(e){e.preventDefault();setError('');setSuccess('');const fields=Object.fromEntries(new FormData(e.currentTarget));if(register&&fields.password!==fields.confirm){setError(tr('Passwords do not match.','كلمتا المرور غير متطابقتين.'));return}if(DEMO){setError(tr('Accounts are not connected in this preview. Use “Explore demo” below; no password is saved.','الحسابات غير مربوطة في هذه المعاينة. استخدم «تجربة المنصة» أدناه؛ لا تُحفظ كلمة المرور.'));return}setBusy(true);try{const payload={name:fields.name,email:fields.email,password:fields.password};if(register)payload.role=fields.role;const result=await api[register?'register':'login'](payload);if(register){setSuccess(tr('Account created. You can now sign in.','تم إنشاء الحساب. يمكنك تسجيل الدخول الآن.'));return}setUser(result.user);navigate(result.user?.role==='student'?'/app/student':destination,{replace:true})}catch{setError(tr('Unable to complete the request. Check your details and try again.','تعذّر إكمال الطلب. راجع بياناتك وحاول مجدداً.'))}finally{setBusy(false)}}
+ const destination=loginDestination({role:'teacher'},location.state?.from)
+ async function submit(e){e.preventDefault();setError('');setSuccess('');const fields=Object.fromEntries(new FormData(e.currentTarget));if(register&&fields.password!==fields.confirm){setError(tr('Passwords do not match.','كلمتا المرور غير متطابقتين.'));return}if(DEMO){setError(tr('Accounts are not connected in this preview. Use “Explore demo” below; no password is saved.','الحسابات غير مربوطة في هذه المعاينة. استخدم «تجربة المنصة» أدناه؛ لا تُحفظ كلمة المرور.'));return}setBusy(true);try{const payload={name:fields.name,email:fields.email,password:fields.password};if(register)payload.role=fields.role;const result=await api[register?'register':'login'](payload);if(register){setSuccess(tr('Account created. You can now sign in.','تم إنشاء الحساب. يمكنك تسجيل الدخول الآن.'));return}setUser(result.user);navigate(loginDestination(result.user,location.state?.from),{replace:true})}catch{setError(tr('Unable to complete the request. Check your details and try again.','تعذّر إكمال الطلب. راجع بياناتك وحاول مجدداً.'))}finally{setBusy(false)}}
 
  useEffect(()=>{if(!root.current||calm())return;const ctx=gsap.context(()=>{
   gsap.timeline()
@@ -56,7 +57,7 @@ export default function Auth({register=false}){
 
    <section className="av-form">
     <nav className="av-switch" data-mode={register?'register':'login'} aria-label={tr('Account','الحساب')}><span className="av-switch-knob" aria-hidden="true"/><Link to="/login" state={location.state} aria-current={!register?'page':undefined}>{tr('Sign in','تسجيل الدخول')}</Link><Link to="/register" state={location.state} aria-current={register?'page':undefined}>{tr('Create account','إنشاء حساب')}</Link></nav>
-    {user&&<p className="av-signed">{tr('Signed in as','مسجّل الدخول باسم')} <strong>{user.name}</strong>. {register?tr('Creating a new account will switch to it.','إنشاء حساب جديد سينقلك إليه.'):tr('Signing in here switches to the other account.','تسجيل الدخول هنا ينقلك إلى الحساب الآخر.')} <Link to={user.role==='student'?'/app/student':'/app'}>{tr('Back to my workspace','العودة لمساحة عملي')}</Link></p>}
+    {user&&<p className="av-signed">{tr('Signed in as','مسجّل الدخول باسم')} <strong>{user.name}</strong>. {register?tr('Creating a new account will switch to it.','إنشاء حساب جديد سينقلك إليه.'):tr('Signing in here switches to the other account.','تسجيل الدخول هنا ينقلك إلى الحساب الآخر.')} <Link to={homePath(user)}>{tr('Back to my workspace','العودة لمساحة عملي')}</Link></p>}
     <div className="av-head"><h2>{register?tr('Make room for every learner.','مساحة لكل متعلّم.'):tr('Welcome back.','أهلاً بعودتك.')}</h2><p>{register?tr('Create your workspace in less than a minute.','أنشئ مساحتك في أقل من دقيقة.'):tr('Your next great lesson starts here.','درسك القادم يبدأ من هنا.')}</p></div>
     <form onSubmit={submit} className="av-fields">
      {register&&<div className="av-roles" role="radiogroup" aria-label={tr('I am a...','أنا...')}>

@@ -1,0 +1,1 @@
+import{r as e}from"./AppContext-BF_4416f.js";import{PlansContent as t}from"./Plans-DScSa8Ru.js";var n=e();function r(){return(0,n.jsx)(t,{inApp:!0})}export{r as default};

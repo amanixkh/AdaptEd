@@ -1,1 +1,0 @@
-import{i as e}from"./Logo-CqPxbxAN.js";import{PlansContent as t}from"./Plans-BoiXFpc9.js";var n=e();function r(){return(0,n.jsx)(t,{inApp:!0})}export{r as default};

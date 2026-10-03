@@ -18,7 +18,7 @@ export function AppProvider({children}){
  useEffect(()=>{if(DEMO)return;api.me().then(r=>setUser(r.user)).catch(()=>setUser(null)).finally(()=>setLoading(false))},[])
  async function refresh(){setLoadError(false);try{setLessons(await api.list())}catch{if(user?.role==='student')setLessons([]);else setLoadError(true)}}
                                                                                          
- useEffect(()=>{if(!DEMO&&user)refresh()},[user])
+ useEffect(()=>{if(!DEMO&&user&&user.role!=='admin')refresh()},[user])
  function addLesson(lesson){const tagged={...lesson,ownerRole:lesson.ownerRole||(user?.role==='student'?'student':'teacher')};setLessons(old=>[tagged,...old.filter(x=>x.id!==tagged.id)])}
  async function updateLesson(lesson,persist=true){if(!DEMO&&persist)await api.save(lesson.id,lesson.outputs,lessons.find(x=>x.id===lesson.id)?.outputs||{});setLessons(old=>old.map(x=>x.id===lesson.id?lesson:x))}
  async function deleteLesson(id){if(!DEMO)await api.remove(id);setLessons(old=>old.filter(lesson=>lesson.id!==id))}
@@ -36,7 +36,7 @@ export function AppProvider({children}){
  const[serverPlan,setServerPlan]=useState(null)
  const planFromServer=sub=>{if(!sub)return null;const name=String(sub.plan||'').toLowerCase();return name.includes('school')?'school':(sub.isPaid||name.includes('pro'))?'pro':'free'}
  useEffect(()=>{
-  if(DEMO||!user||user.demo||user.role==='student')return
+  if(DEMO||!user||user.demo||user.role!=='teacher')return
   let active=true
   api.subscriptionStatus().then(sub=>{if(active)setServerPlan(planFromServer(sub))}).catch(()=>{})
   return()=>{active=false}

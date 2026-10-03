@@ -27,6 +27,7 @@ export default function Layout(){
  if(!user)return <Navigate to="/login" replace state={{from:location.pathname}}/>
  
  
+ if(user.role==='admin')return <Navigate to="/admin/dashboard" replace/>
  if(user.role==='student'&&!location.pathname.startsWith('/app/student'))return <Navigate to="/app/student" replace/>
  if(user.role!=='student'&&location.pathname.startsWith('/app/student'))return <Navigate to="/app" replace/>
  const items=user.role==='student'?[['/app/student',LayoutDashboard,tr('My lessons','دروسي')],['/app/student/upload',Upload,tr('Upload lesson','رفع درس')],['/app/student/tools/generate',Sparkles,tr('Generate','التوليد')],['/app/student/tools/quiz',BookOpen,tr('Quiz','الاختبارات')],['/app/student/tools/flashcards',Layers,tr('Flashcards','بطاقات المراجعة')],['/app/student/progress',TrendingUp,tr('My progress','تقدّمي')],['/app/student/tutor',MessageCircleHeart,tr('Study Tutor','مساعد التعلّم')],['/app/student/live',Video,tr('Live Classes','الصفوف المباشرة')],['/app/student/archive',Archive,tr('Archive','الأرشيف')]]:[['/app',LayoutDashboard,tr('Overview','نظرة عامة')],['/app/upload',Upload,tr('New lesson','درس جديد')],['/app/history',History,tr('Lesson library','مكتبة الدروس')],['/app/archive',Archive,tr('Archive','الأرشيف')],['/app/tutor',MessageCircleHeart,tr('Teaching Assistant','مساعد المعلم')],['/app/live',Video,tr('Live Classes','الصفوف المباشرة')],['/app/plans',Gem,tr('Plans','الخطط')]]
