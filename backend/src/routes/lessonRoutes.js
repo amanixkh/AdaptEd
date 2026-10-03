@@ -6,6 +6,7 @@ const upload = require("../middleware/upload");
 const authMiddleware = require("../middleware/authMiddleware");
 const { extractTextWithOcr } = require("../services/ocrService");
 const { computePercentage, isPassed } = require("../utils/quizScoring");
+const { createNotification } = require("../controllers/notificationController");
 
 const router = express.Router();
 
@@ -553,7 +554,7 @@ router.post("/:id/share", authMiddleware, async (req, res) => {
     }
 
     const lessonResult = await pool.query(
-      `SELECT id FROM lessons WHERE id = $1 AND user_id = $2`,
+      `SELECT id, title FROM lessons WHERE id = $1 AND user_id = $2`,
       [lessonId, req.user.id]
     );
 
@@ -584,6 +585,24 @@ router.post("/:id/share", authMiddleware, async (req, res) => {
        RETURNING student_id`,
       [lessonId, validIds]
     );
+
+    // Immediate "new lesson" notification for each newly assigned student.
+    // It reuses the same (user_id, type='new_lesson', related_id) keys that the
+    // scheduler's notifyNewLessonAssignments() reconciliation checks, so the
+    // scheduler skips these rows and never creates a duplicate.
+    try {
+      for (const row of inserted.rows) {
+        await createNotification(
+          row.student_id,
+          "new_lesson",
+          "درس جديد",
+          `تمت مشاركة درس جديد معك: ${lessonResult.rows[0].title}`,
+          lessonId
+        );
+      }
+    } catch (notificationError) {
+      console.error("Share lesson notification error:", notificationError);
+    }
 
     return res.status(200).json({
       success: true,
@@ -619,7 +638,7 @@ router.get("/:id/quiz-attempts", authMiddleware, async (req, res) => {
 
     const result = await pool.query(
       `SELECT qa.id, qa.student_id, u.name AS student_name, u.email AS student_email,
-              qa.score, qa.total, qa.created_at,
+              qa.score, qa.total, qa.final_score, qa.status, qa.teacher_feedback, qa.created_at,
               ROW_NUMBER() OVER (PARTITION BY qa.student_id ORDER BY qa.created_at ASC) AS attempt_number
        FROM quiz_attempts qa
        JOIN users u ON u.id = qa.student_id
@@ -638,6 +657,9 @@ router.get("/:id/quiz-attempts", authMiddleware, async (req, res) => {
         attemptNumber: Number(row.attempt_number),
         score: row.score,
         total: row.total,
+        finalScore: row.final_score,
+        status: row.status,
+        teacherFeedback: row.teacher_feedback,
         percentage,
         passed: isPassed(percentage),
         createdAt: row.created_at,
@@ -650,6 +672,97 @@ router.get("/:id/quiz-attempts", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error("Get lesson quiz attempts error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// Teacher review: set the final score and feedback for one attempt, then mark it
+// as reviewed. Only the teacher who owns the lesson may review its attempts; the
+// AI score (quiz_attempts.score) is never touched here.
+router.patch("/:id/quiz-attempts/:attemptId", authMiddleware, async (req, res) => {
+  try {
+    if (!ensureTeacher(req, res)) return;
+    const { id: lessonId, attemptId } = req.params;
+    const { final_score: finalScore, teacher_feedback: teacherFeedback } = req.body || {};
+
+    const lessonResult = await pool.query(
+      `SELECT id FROM lessons WHERE id = $1 AND user_id = $2`,
+      [lessonId, req.user.id]
+    );
+
+    if (lessonResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const attemptResult = await pool.query(
+      `SELECT id, total FROM quiz_attempts WHERE id = $1 AND lesson_id = $2`,
+      [attemptId, lessonId]
+    );
+
+    if (attemptResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz attempt not found",
+      });
+    }
+
+    const { total } = attemptResult.rows[0];
+
+    if (!Number.isInteger(finalScore) || finalScore < 0 || finalScore > total) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid final score is required",
+      });
+    }
+
+    if (
+      teacherFeedback !== undefined &&
+      teacherFeedback !== null &&
+      typeof teacherFeedback !== "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "teacher_feedback must be a string",
+      });
+    }
+
+    const feedback =
+      typeof teacherFeedback === "string" ? teacherFeedback.trim() || null : null;
+
+    const result = await pool.query(
+      `UPDATE quiz_attempts
+          SET final_score = $1, teacher_feedback = $2, status = 'reviewed'
+        WHERE id = $3 AND lesson_id = $4
+        RETURNING id, student_id, score, total, final_score, status, teacher_feedback, created_at`,
+      [finalScore, feedback, attemptId, lessonId]
+    );
+
+    const attempt = result.rows[0];
+    const percentage = computePercentage(attempt.score, attempt.total);
+
+    return res.status(200).json({
+      success: true,
+      attempt: {
+        id: attempt.id,
+        studentId: attempt.student_id,
+        score: attempt.score,
+        total: attempt.total,
+        finalScore: attempt.final_score,
+        status: attempt.status,
+        teacherFeedback: attempt.teacher_feedback,
+        percentage,
+        passed: isPassed(percentage),
+        createdAt: attempt.created_at,
+      },
+    });
+  } catch (error) {
+    console.error("Review quiz attempt error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",

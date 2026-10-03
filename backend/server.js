@@ -11,6 +11,7 @@ const lessonRoutes = require("./src/routes/lessonRoutes");
 const geminiRoutes = require("./src/routes/geminiRoutes");
 const generateRoutes = require("./src/routes/generateRoutes");
 const authRoutes = require("./src/routes/authRoutes");
+const adminRoutes = require("./src/routes/adminRoutes");
 const testRoutes = require("./src/routes/testroutes");
 const generatedContentRoutes = require("./src/routes/generatedContentRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
@@ -37,7 +38,7 @@ app.use("/api/generated-content", generatedContentRoutes);
 app.use("/api/test", testRoutes);
 
 app.use("/api/auth", authRoutes);
-
+app.use("/api/admin", adminRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/lessons", lessonFileRoutes);
 app.use("/api/lessons", lessonRoutes);
@@ -59,6 +60,11 @@ app.use("/api/contact", contactRoutes);
 app.get("/", (req, res) => {
   res.send("AdaptEd backend is running!");
 });
+
+// Notifications are produced by scheduled jobs (new-lesson reconciliation,
+// score improvement, learning streak and inactivity reminders). Start the
+// scheduler so those jobs actually run while the app is running.
+startNotificationJobs();
 
 const PORT = process.env.PORT || 5000;
 const HOST = "localhost";
